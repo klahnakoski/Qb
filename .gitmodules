@@ -1,6 +1,6 @@
-[submodule "html/es/lib/jsImport"]
-	path = html/es/lib/jsImport
+[submodule "html/lib/jsImport"]
+	path = html/lib/jsImport
 	url = https://github.com/klahnakoski/jsImport.git
-[submodule "html/es/lib/jsThreads"]
-	path = html/es/lib/jsThreads
+[submodule "html/lib/jsThreads"]
+	path = html/lib/jsThreads
 	url = https://github.com/mozilla/jsThreads.git
