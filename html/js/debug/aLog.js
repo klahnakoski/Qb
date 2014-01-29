@@ -4,9 +4,6 @@
 
 
 
-importScript([
-	"../../lib/jquery.js"
-]);
 importScript("aException.js");
 
 
