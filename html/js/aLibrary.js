@@ -12,5 +12,5 @@ importScript("util/aTimer.js");
 
 importScript([
 	"debug/aLog.js",
-	"../lib/jsThreads/thread.js"
+	"threads/thread.js"
 ]);

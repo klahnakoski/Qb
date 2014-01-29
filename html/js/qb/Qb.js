@@ -18,7 +18,7 @@ importScript("Qb.cube.js");
 importScript("Qb.domain.js");
 importScript("Qb.analytic.js");
 
-importScript("../../lib/jsThreads/thread.js");
+importScript("../threads/thread.js");
 
 var Q;   //=Q
 
