@@ -175,7 +175,7 @@
 			//LAUNCH ALL QUERIES
 			var threads=[];
 			for(var i=0;i<queries.length;i++){
-				var j=1;
+				var j=i;
 				threads[i]=Thread.run(function(){
 					yield(ESQuery.loadColumns(query));
 					var cubeQuery = new ESQuery(queries[j]);
