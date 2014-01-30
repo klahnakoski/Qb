@@ -179,7 +179,8 @@
 				threads[i]=Thread.run(function(){
 					yield(ESQuery.loadColumns(query));
 					var cubeQuery = new ESQuery(queries[j]);
-					yield(cubeQuery.run());
+					var data = yield(cubeQuery.run());
+					yield (data);
 				});
 			}//for
 
