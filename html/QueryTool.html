@@ -159,6 +159,42 @@
 			Thread.run(executeCube());
 		});//method
 	});
+
+	function ESQueryRunner(query, callback){
+		Thread.run(function(){
+			yield(ESQuery.loadColumns(query));
+			var cubeQuery = new ESQuery(query);
+			var data = yield(cubeQuery.run());
+			callback(data);
+		});
+	}//method
+
+	function ESQueryRunMany(queries, callback){
+		//ASSUME queries IS AN ARRAY
+		Thread.run(function(){
+			//LAUNCH ALL QUERIES
+			var threads=[];
+			for(var i=0;i<queries.length;i++){
+				var j=1;
+				threads[i]=Thread.run(function(){
+					yield(ESQuery.loadColumns(query));
+					var cubeQuery = new ESQuery(queries[j]);
+					yield(cubeQuery.run());
+				});
+			}//for
+
+			//COLLECT ALL RESULTS
+			data=[];
+			for(var i=0;i<queries.length;i++){
+				data[i]=threads[i].join().threadResponse
+			}//for
+
+			//EXECUTE CALLBACK
+			callback(data);
+		});
+
+
+	}//method
 </script>
 
 
