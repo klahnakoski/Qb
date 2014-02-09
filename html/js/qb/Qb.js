@@ -118,7 +118,7 @@ function calcAgg(row, result, query, select){
 }//method
 
 
-function calc2Tree(query){
+function* calc2Tree(query){
 	if (query.edges.length == 0)
 		Log.error("Tree processing requires an edge");
 	if (query.where=="bug!=null")
@@ -151,12 +151,12 @@ function calc2Tree(query){
 
 			if (edge.test || edge.range){
 				//MULTIPLE MATCHES EXIST
-				let matches= edge.domain.getMatchingParts(row);
+				var matches= edge.domain.getMatchingParts(row);
 
 				if (matches.length == 0){
 					edge.outOfDomainCount++;
 					if (edge.allowNulls){
-						for(let t = results.length; t--;){
+						for(t = results.length; t--;){
 							results[t][f] = edge.domain.NULL;
 						}//for
 					} else{
@@ -164,7 +164,7 @@ function calc2Tree(query){
 					}//endif
 				} else{
 					//WE MULTIPLY THE NUMBER OF MATCHES TO THE CURRENT NUMBER OF RESULTS (SQUARING AND CUBING THE RESULT-SET)
-					for(let t = results.length; t--;){
+					for(t = results.length; t--;){
 						result = results[t];
 						result[f] = matches[0];
 						for(var p = 1; p < matches.length; p++){
@@ -185,14 +185,14 @@ function calc2Tree(query){
 				if (p == edge.domain.NULL){
 					edge.outOfDomainCount++;
 					if (edge.allowNulls){
-						for(let t = results.length; t--;){
+						for(t = results.length; t--;){
 							results[t][f] = edge.domain.NULL;
 						}//for
 					} else{
 						continue FROM;
 					}//endif
 				} else{
-					for(let t = results.length; t--;) results[t][f] = p;
+					for(t = results.length; t--;) results[t][f] = p;
 				}//endif
 			}//endif
 		}//for
@@ -224,13 +224,13 @@ function calc2Tree(query){
 
 Qb.listAlert=false;
 
-Qb.calc2List = function(query){
+Qb.calc2List = function*(query){
 	if (!Qb.listAlert){
 //		Log.alert("Please do not use Qb.calc2List()");
 		Qb.listAlert=true;
 	}//endif
 
-	
+
 	if (query.edges===undefined) query.edges=[];
 	var select = Array.newInstance(query.select);
 
@@ -291,7 +291,7 @@ Qb.calc2List = function(query){
 
 
 
-function calc2Cube(query){
+function* calc2Cube(query){
 	if (query.edges===undefined) query.edges=[];
 
 	if (query.edges.length==0){
@@ -365,7 +365,7 @@ Qb.List2Cube=function(query){
 ////////////////////////////////////////////////////////////////////////////////
 //  REDUCE ALL DATA TO ZERO DIMENSIONS
 ////////////////////////////////////////////////////////////////////////////////
-function aggOP(query){
+function* aggOP(query){
 	var select = Array.newInstance(query.select);
 
 	var sourceColumns = yield(Qb.getColumnsFromQuery(query));
@@ -412,7 +412,7 @@ function aggOP(query){
 ////////////////////////////////////////////////////////////////////////////////
 //  DO NOTHING TO TRANSFORM LIST OF OBJECTS
 ////////////////////////////////////////////////////////////////////////////////
-function noOP(query){
+function* noOP(query){
 	var sourceColumns = yield(Qb.getColumnsFromQuery(query));
 	var from = query.from.list;
 
@@ -425,7 +425,7 @@ function noOP(query){
 		var where = Qb.where.compile(query.where, sourceColumns, []);
 
 		var output = [];
-		for(let t = from.length;t--;){
+		for(t = from.length;t--;){
 			if (where(from[t], null)){
 				output.push(from[t]);
 			}//endif
@@ -451,7 +451,7 @@ function noOP(query){
 ////////////////////////////////////////////////////////////////////////////////
 //  SIMPLE TRANSFORMATION ON A LIST OF OBJECTS
 ////////////////////////////////////////////////////////////////////////////////
-function setOP(query){
+function* setOP(query){
 	var sourceColumns = yield (Qb.getColumnsFromQuery(query));
 	var from=query.from.list;
 
@@ -460,14 +460,14 @@ function setOP(query){
 
 
 
-	for(let s = 0; s < select.length; s++){
+	for(s = 0; s < select.length; s++){
 		if (typeof(s)=='string') select[s]={"value":s};
 		Qb.column.compile(select[s], sourceColumns, undefined);
 	}//for
 	var where = Qb.where.compile(query.where, sourceColumns, []);
 
 	var output = [];
-	for(let t = 0; t < from.length; t++){
+	for(t = 0; t < from.length; t++){
 		var result = {};
 		for(var s = 0; s < select.length; s++){
 			var ss = select[s];
@@ -540,7 +540,7 @@ Qb.toTable=function(query){
 };//method
 
 
-Qb.Cube2List=function(query, options){
+Qb.Cube2List=function*(query, options){
 	//WILL end() ALL PARTS UNLESS options.useStruct==true OR options.useLabels==true
 
 	options=nvl(options, {});
@@ -625,7 +625,7 @@ Qb.Cube2List=function(query, options){
 	//COMPILE
 	var cube2list;
 	eval(code);
-	
+
 
 	{//EVAL
 		var t=new aTimer("Convert from cube to list", Duration.SECOND);
@@ -770,7 +770,7 @@ function Tree2Cube(query, cube, tree, depth){
 	var domain=edge.domain;
 
 	if (depth < query.edges.length-1){
-		let keys=Object.keys(tree);
+		var keys=Object.keys(tree);
 		for(var k=keys.length;k--;){
 			var p=domain.getPartByKey(keys[k]).dataIndex;
 			if (cube[p]===undefined){
@@ -783,7 +783,7 @@ function Tree2Cube(query, cube, tree, depth){
 	}//endif
 
 	if (query.select instanceof Array){
-		let keys=Object.keys(tree);
+		var keys=Object.keys(tree);
 		for(var k=keys.length;k--;){
 			var p=domain.getPartByKey(keys[k]).dataIndex;
 			//I AM CONFUSED: ARE Qb ELEMENTS ARRAYS OR OBJECTS?
@@ -798,8 +798,8 @@ function Tree2Cube(query, cube, tree, depth){
 			cube[p]=tuple;
 		}//for
 	} else{
-		
-		let keys=Object.keys(tree);
+
+		var keys=Object.keys(tree);
 		for(var k=keys.length;k--;){
 			try{
 				var p=domain.getPartByKey(keys[k]).dataIndex;
@@ -824,7 +824,7 @@ function Tree2Cube(query, cube, tree, depth){
 
 //RETURN THE COLUMNS FROM THE GIVEN QUERY
 //ALSO NORMALIZE THE ARRAY OF OBJECTS TO BE AT query.from.list
-Qb.getColumnsFromQuery=function(query){
+Qb.getColumnsFromQuery=function*(query){
 	//FROM CLAUSE MAY BE A SUB QUERY
 
 	var sourceColumns;
@@ -933,8 +933,8 @@ Qb.merge=function(query){
 		//COPY ATTRIBUTES TO NEW JOINED
 		if (output.edges.length==1){
 
-			let parts=output.edges[0].domain.partitions;
-			let num=parts.length;
+			var parts=output.edges[0].domain.partitions;
+			var num=parts.length;
 			if (output.edges[0].allowNulls){
 				if (parts[parts.length-1]!=output.edges[0].domain.NULL) Log.error("Expecting NULL in the partitions");
 			}else{
@@ -945,7 +945,7 @@ Qb.merge=function(query){
 			}//endif
 
 			if (item.from.select instanceof Array){
-				for(let i=num;i--;){
+				for(i=num;i--;){
 					if (item.edges[0].domain.partitions[i].dataIndex!=i)
 						Log.error("do not know how to handle");
 					var row=output.cube[i];
@@ -953,7 +953,7 @@ Qb.merge=function(query){
 				}//for
 			}else{
 				//Qb HAS VALUES, NOT OBJECTS
-				for(let i=num;i--;){
+				for(i=num;i--;){
 					if (item.edges[0].domain.partitions[i].dataIndex!=i)
 						Log.error("do not know how to handle");
 					output.cube[i][item.from.select.name]=item.from.cube[i];
@@ -989,15 +989,15 @@ Qb.merge=function(query){
 
 
 			if (item.from.select instanceof Array){
-				for(let i=num0;i--;){
-					for(let j=num1;j--;){
+				for(i=num0;i--;){
+					for(j=num1;j--;){
 						Map.copy(item.from.cube[i][j], output.cube[i][j]);
 					}//for
 				}//for
 			}else{
 				//Qb HAS VALUES, NOT OBJECTS
-				for(let i=num0;i--;){
-					for(let j=num1;j--;){
+				for(i=num0;i--;){
+					for(j=num1;j--;){
 						output.cube[i][j][item.from.select.name]=item.from.cube[i][j];
 					}//for
 				}//for
@@ -1108,19 +1108,19 @@ Qb.drill=function(query, parts){
 	query.edges.forall(function(edge, e){
 		if (parts[e]==undefined) return;
 
-		for(let p=0;p<edge.domain.partitions.length;p++){
+		for(p=0;p<edge.domain.partitions.length;p++){
 			var part=edge.domain.partitions[p];
 			if (
 				(edge.domain.type=="time" && part.value.getMilli()==parts[e].getMilli()) ||  //CCC VERSION 2 (TIME ONLY)
 				(part.name==parts[e])  //CCC VERSION 1
 			){
-				let filter=ESQuery.buildCondition(edge, part, query);
+				var filter=ESQuery.buildCondition(edge, part, query);
 				newQuery.esfilter.and.push(filter);
 				return;  //CONTINUE
 			}//endif
 		}//for
 		if (edge.domain.NULL.name==parts[e]){
-			let filter={"script":{"script":MVEL.compile.expression(ESQuery.compileNullTest(edge), newQuery)}};
+			var filter={"script":{"script":MVEL.compile.expression(ESQuery.compileNullTest(edge), newQuery)}};
 			newQuery.esfilter.and.push(filter);
 			return;  //CONTINUE
 		}//endif

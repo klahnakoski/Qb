@@ -88,7 +88,7 @@ THIS IS A DEMONSTRATION OF USING THE ESQueryRunner
 			var query = jsl.parser.parse(code);
 			ESQueryRunner(query, function(data){
 				if (data.cube !== undefined){
-					Thread.run(function(){
+					Thread.run(function*(){
 						data.list = yield(Qb.Cube2List(data));
 						$("#result").html("<div>" + data.list.length + " rows (up to 100 shown)</div>" + CNV.List2HTMLTable(data.list, {"limit":3000}));
 					});
