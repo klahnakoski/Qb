@@ -384,7 +384,7 @@ Private Bugs
 
 The public cluster does not contain Mozilla's confidential bugs.  Most of
 these are internal network and infrastructure bugs, product security bugs, and
-administrative "bugs".  Mozilla has an LDAP-accessible private cluster with
+administrative "bugs".  Mozilla has an VPN-accessible private cluster with
 those additional private bugs, but is handicapped by having no comments or 
 descriptions.  When querying aggregates you must be cognisant of this 
 difference.

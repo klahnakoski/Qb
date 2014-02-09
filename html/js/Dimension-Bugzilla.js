@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 importScript("Dimension.js");
+importScript("qb/ESQuery.js");
 
 if (!Mozilla) var Mozilla={"name":"Mozilla", "edges":[]};
 
@@ -249,7 +250,7 @@ Dimension.addEdges(true,  Mozilla, [
 		{"name":"Teams",
 			"type":"set",
 			"isFacet":true, //MULTIVALUED ATTRIBUTES CAN NOT BE HANDLED BY MVEL.Parts2Term()
-			"esfilter": {"terms":{"product":['Fennec','Firefox for Android', "Mozilla Services", "Boot2Gecko", "firefox", "toolkit", "thunderbird", "mailnews core", 'JSS','NSS','NSPR', "core"]}},
+			"esfilter":{"terms":{"product":['Fennec','Firefox for Android', "Mozilla Services", "Boot2Gecko", "firefox", "toolkit", "thunderbird", "mailnews core", 'JSS','NSS','NSPR', "core"]}},
 			"partitions":[
 			{"name": "Mobile", "esfilter":
 				{"terms":{"product":['Fennec','Firefox for Android']}}

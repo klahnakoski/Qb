@@ -1,22 +1,21 @@
 
-
+Qb Query Library
+================
 
 Requirements
-============
+------------
 
-Access to one of the bugs clusters is required
+Access to one of the bug clusters is required.  Use [ElasticSearch Head](https://github.com/mobz/elasticsearch-head) to
+test connectivity.
 
-  - Proxy to public cluster (need VPN to **TOR**)<br>'``http://klahnakoski-es.corp.tor1.mozilla.com:9201/public_bugs/bug_version```
-  - Proxy to public cluster<br>```http://esfrontline1.bugs.scl3.mozilla.com:9292/public_bugs/bug_version```
-  - Direct to the public cluster<br>```http://elasticsearch1.bugs.scl3.mozilla.com:9200/public_bugs/bug_version```
-  - Proxy to private cluster (need VPN to **TOR**)<br>```http://klahnakoski-es.corp.tor1.mozilla.com:9204/private_bugs/bug_version```
-  - Metrics' private cluster (need VPN to **MPT**)<br>```http://elasticsearch7.metrics.scl3.mozilla.com:9200/bugs/bug_version```
-  - Direct to private cluster (need **LDAP**)<br>```http://elasticsearch4.bugs.scl3.mozilla.com:9200/private_bugs/bug_version```
+  - Proxy to public cluster<br>```http://esfrontline.bugs.mozilla.org:80/public_bugs/bug_version```
+  - Direct to public cluster (need VPN access)<br>```http://elasticsearch-zlb.bugs.scl3.mozilla.com:9200/public_bugs/bug_version```
+  - Direct to private cluster (need VPN access)<br>```http://elasticsearch-private.bugs.scl3.mozilla.com:9200/private_bugs/bug_version```
 
 Setup
-=====
+-----
 
-After cloning, you must ```git submodule init``` and ```git submodule update```.  Here is my full session:
+Simply clone the git repo:
 
 **git clone https://github.com/klahnakoski/Qb.git**
     

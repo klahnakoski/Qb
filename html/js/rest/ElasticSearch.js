@@ -26,9 +26,9 @@ if (window.location.hostname=="metrics.mozilla.com"){
 //	ElasticSearch.baseURL="http://elasticsearch7.metrics.scl3.mozilla.com:9200";
 //	ElasticSearch.queryURL = "http://elasticsearch7.metrics.scl3.mozilla.com:9200/bugs/_search";
 
-	ElasticSearch.pushURL="http://elasticsearch4.bugs.scl3.mozilla.com:9200";
+	ElasticSearch.pushURL="http://localhost:9200";
 //	ElasticSearch.pushURL="http://klahnakoski-es.corp.tor1.mozilla.com:9200";
-//	ElasticSearch.pushURL="http://elasticsearch7.metrics.scl3.mozilla.com:9200";
+//	ElasticSearch.pushURL="http://elasticsearch4.bugs.scl3.mozilla.com:9200";
 
 	//THESE ARE NOW ALL GOOD NODES!!
 	//(2:13:01 PM) mreid: ekyle, if you've still got things set to only hit elasticsearch7, you should probably change it to know about all 4 nodes
@@ -40,7 +40,7 @@ if (window.location.hostname=="metrics.mozilla.com"){
 //	ElasticSearch.baseURL="http://elasticsearch4.metrics.scl3.mozilla.com:9200";
 //	ElasticSearch.baseURL="http://elasticsearch5.metrics.scl3.mozilla.com:9200";
 	ElasticSearch.baseURL="http://elasticsearch7.metrics.scl3.mozilla.com:9200";
-//	ElasticSearch.baseURL="http://elasticsearch8.metrics.scl3.mozilla.com:9200";
+//	ElasticSearch.baseURL="http://elasticsearch8.bugs.scl3.mozilla.com:9200";
 
 //	ElasticSearch.baseURL="http://localhost:9292";
 //	ElasticSearch.baseURL="http://elasticsearch7.bugs.scl3.mozilla.com:9200";
@@ -115,7 +115,7 @@ ElasticSearch.getMinMax=function(esfilter){
 	//MUST CALL ES TWICE BECAUSE WE CAN ONLY HAVE ONE SELECT COLUMN IF WE HAVE EDGES
 	var u1 = yield(ESQuery.run({
 		"from":"bugs",
-		"select": {"name":"min", "value":"modified_ts", "aggregate":"minimum"},
+		"select":{"name":"min", "value":"modified_ts", "aggregate":"minimum"},
 		"edges":[
 			"bug_id"
 		],
@@ -124,7 +124,7 @@ ElasticSearch.getMinMax=function(esfilter){
 
 	var u2 = yield(ESQuery.run({
 		"from":"bugs",
-		"select": {"name":"max", "value":"expires_on ", "aggregate":"maximum"},
+		"select":{"name":"max", "value":"expires_on ", "aggregate":"maximum"},
 		"edges":[
 			"bug_id"
 		],
@@ -157,16 +157,16 @@ ElasticSearch.getMinMax=function(esfilter){
 
 ElasticSearch.makeBasicQuery=function(esfilter){
 	return {
-		"query": {
-			"filtered": {
-			  "query": {"match_all": {}},
-			  "filter": {"and": [esfilter]}
+		"query":{
+			"filtered":{
+			  "query":{"match_all":{}},
+			  "filter":{"and": [esfilter]}
 			}
 		},
 		"from": 0,
 		"size": 0,
 		"sort": [],
-		"facets": {}
+		"facets":{}
 	};
 };
 

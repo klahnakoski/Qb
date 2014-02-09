@@ -1,0 +1,1 @@
+These queries are throw-away tests that I use in html\QueryTool.html to view the resulting transformation

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 importScript("../util/aDate.js");
+importScript("aCompiler.js");
 
 if (Qb===undefined) var Qb = {};
 Qb.domain = {};
