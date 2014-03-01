@@ -19,7 +19,7 @@ THIS IS A DEMONSTRATION OF USING THE ESQueryRunner
     <script type="application/javascript;version=1.7" src="js/ESQueryRunner.js"></script>
 </HEAD>
 <BODY>
-
+<div class="warning">If you see this message, it is because you need FF27+, or Chrome (with experimental Javascript enabled)</div>
 
 <h3>Qb Query Tool</h3>
 
@@ -75,6 +75,7 @@ THIS IS A DEMONSTRATION OF USING THE ESQueryRunner
 <script type="application/javascript">
     importScript([], function () {
         Thread.run(function*() {
+            $(".warning").html("");
             while (true) {
                 $("#currtime").html("" + aMath.round(Date.now().getMilli(), -3));
                 yield (Thread.sleep(333));

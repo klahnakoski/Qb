@@ -35,9 +35,9 @@ Nomenclature
   - **part** – one part of a partition.  Eg "north-east region", or "under 20"
   - **part objects** - Partitions are often an array of objects (with a name, value, and other attributes).  These objects usually represent the values along the axis of a chart.  Eg {"name": "NorthEast", "director":"Ann"} {"name":"Under 20", "display color":"blue"}
   - **cell** – a unique tuple representing one part from each edge:  Simply an array of part objects.
-  - **value** - 
-  - **object** - 
-  - **attribute** - 
+  - **value** -
+  - **object** -
+  - **attribute** -
   - **record/row** – anaglous to a database row.  In the case of a cube, there is one record for every cell: which is an object with having attributes
   - **column** – anagolous to a database column: a common attribute definition found on all objects in a cube
 
@@ -45,12 +45,13 @@ ORDER OF OPERATIONS
 -------------------
 Each of the clauses are executed in a particular order, irrespective of their order in the JSON structure.   This is most limiting in the case of the where clause.  Use sub queries to get around this limitation for now.
 
-  - **from** – the array, or list, to operate on.  Can also be the results of a query, or an in-lined subquery.  
-  - **edges** – definition of the edge names and their domains 
+  - **from** – the array, or list, to operate on.  Can also be the results of a query, or an in-lined subquery.
+  - **edges** – definition of the edge names and their domains
   - **where** – early in the processing to limit rows and aggregation: has access to domain names
   - **select** – additional aggregate columns added
   - **window** – window columns added
   - **sort** – run at end, but only if output to a list.
+  - **isLean** - used by ElasticSearch to use _source on all fields
 
 QUERY STRUCTURE
 ---------------
@@ -83,7 +84,7 @@ Example: Pull review requests from BZ:
 ESQuery.js can pull individual nested documents from ES.  ES on it’s own can only return a document once.  Aggregation
 over nested documents is not supported.
 
-select 
+select
 ------
 
 The select clause can be a single attribute definition, or an array of attribute definitions.  The former will result
@@ -101,7 +102,7 @@ Here is an example counting the current number of bugs (open and closed) in the 
     ]}
     }
 
-We can pull some details on those bugs 
+We can pull some details on those bugs
 
     {
     "from":"bugs",
@@ -129,7 +130,7 @@ replaced with simply the value:
 
 
 
-  - **name** – The name of the attribute.   Optional if ```value``` is a simple variable name. 
+  - **name** – The name of the attribute.   Optional if ```value``` is a simple variable name.
   - **value** – Code to generate the attribute value (MVEL for ES, Javascript otherwise)
   - **aggregate** – one of many aggregate operations
   - **default** to replace null in the event there is no data
@@ -141,7 +142,7 @@ select.aggregate
 The ```aggregate``` sub-clause has many options.  Unfortunately not all of them are available to queries destined for
 ES.  ES only supports (count, sum, mean, variance).
 
-  - **none** – when expecting only one value 
+  - **none** – when expecting only one value
   - **one** – when expecting all values to be identical
   - **binary** – returns 1 if value found, 0 for no value
   - **exists** – same as binary but returns boolean
@@ -207,13 +208,13 @@ additional stipulation that all parts of all domains will have values, even if n
 
   - **name** – The name given to the resulting edge (optional, if the value is a simple attribute name)
   - **value** – The code to generate the edge value before grouping
-  - **range** – Can be used instead of value,  but only for algebraic fields: In which case, if the minimum of a domain part is in the range, it will be used in the aggregate.  
+  - **range** – Can be used instead of value,  but only for algebraic fields: In which case, if the minimum of a domain part is in the range, it will be used in the aggregate.
       - **min** – The code that defined the minimum value
       - **max** – The code defining the supremum (of all values greater than the range, pick the smallest)
   - **mode** – ```inclusive``` will ensure any domain part that intersects with the range will be used in the aggregate.  ```snapshot`` (default) will only count ranges that contain the domain part key value.
   - **test** – Can be used instead of value: Code that is responsible for returning true/false on whether the data will match the domain parts.  Use this to simulate a SQL join.
   - **domain** – The range of values to be part of the aggregation
-  - **allowNulls** – Set to true if you want to aggregate all values outside the domain 
+  - **allowNulls** – Set to true if you want to aggregate all values outside the domain
 
 edges.domain
 --------------
@@ -221,8 +222,8 @@ edges.domain
 The domain is defined as an attribute of every edge.  Each domain defines a covering partition.
 
   - **name** – Name given to this domain definition, for use in other code in the query (default to ```type``` value).
-  - **type** – One of a few predefined types  (Default ```{"type":"default"}```)  
-  - **value** – Domain partitions are technically JSON objects with descriptive attributes (name, value, max, min, etc).  The value attribute is code that will extract the value of the domain after aggregation is complete. 
+  - **type** – One of a few predefined types  (Default ```{"type":"default"}```)
+  - **value** – Domain partitions are technically JSON objects with descriptive attributes (name, value, max, min, etc).  The value attribute is code that will extract the value of the domain after aggregation is complete.
   - **key** – Code to extract the unique key value from any part object in a partition.  This is important so a 1-1 relationship can be established – mapping fast string hashes to slow object comparisons.
   - **isFacet** – for ES queries:  Will force each part of the domain to have it’s own facet.  Each part of the domain must be explicit, and define ```edges[].domain.partition.esfilter``` as the facet filter.  Avoid using ```{"script"...}``` filters in facets because they are WAY slow.
 
@@ -236,7 +237,7 @@ Every edge must be limited to one of a few basic domain types.  Which further de
       - **edge.domain.min** – Minimum value of domain (optional)
       - **edge.domain.max** – Supremum of domain (optional)
       - **edge.domain.interval** – The size of each time part. (max-min)/interval must be an integer
-  - **duration** – Defines an time interval 
+  - **duration** – Defines an time interval
       - **edge.domain.min** – Minimum value of domain (optional)
       - **edge.domain.max** – Supremum of domain (optional)
       - **edge.domain.interval** – The size of each time part. (max-min)/interval must be an integer
@@ -245,7 +246,7 @@ Every edge must be limited to one of a few basic domain types.  Which further de
       - **edge.domain.max** – Supremum of domain (optional)
       - **edge.domain.interval** – The size of each time part. (max-min)/interval must be an integer
   - **count** – just like numeric, but limited to integers >= 0
-  - **set** – An explicit set of unique values 
+  - **set** – An explicit set of unique values
       - **edge.domain.partitions** – the set of values allowed.  These can be compound objects, but ```edge.test``` and ```edge.domain.value``` need to be defined.
 
 window
@@ -254,13 +255,13 @@ window
 Each window column defines an additional attribute for the result set.  A window column does not change the number of rows returned.  For each window, the data is grouped, sorted and assigned a ```rownum``` attribute that can be used to calculate the attribute value.
 
   - **name** – name given to resulting attribute
-  - **value** – can be a function (or a string containing javascript code) to determine the attribute value.  The functions is passed three special variables: 
+  - **value** – can be a function (or a string containing javascript code) to determine the attribute value.  The functions is passed three special variables:
       - ```row``` – the row being processed
       - ```rownum``` – which is integer, starting at zero for the first row
       - ```rows``` – an array of all data in the group.
-  - **edges** – an array of column names used to determine the groups 
+  - **edges** – an array of column names used to determine the groups
   - **where** – code that returns true/false to indicate if a record is a member of any group.  This will not affect the number of rows returned, only how the window is calculated.  If where returns false then rownum and rows will both be null:  Be sure to properly handle those values in your code.
-  - **sort** – a single attribute name, or array of attribute names, used to sort the members of each group 
+  - **sort** – a single attribute name, or array of attribute names, used to sort the members of each group
 
 Pre-Defined Dimensions
 ----------------------
@@ -271,7 +272,7 @@ have been pre-defined](https://github.com/klahnakoski/Qb/blob/master/html/es/js/
 
   - **select** - Any pre-defined dimension with a partition defined can be used in a select clause. Each record will be
   assigned it's part.
- 
+
     <pre>var details=yield(ESQuery.run({
         "from":"bugs",
     	"select":[
@@ -289,7 +290,7 @@ have been pre-defined](https://github.com/klahnakoski/Qb/blob/master/html/es/js/
     }));</pre>
 
   - **edge.domain** - Pre-defined dimensions can be used as domain values
-  
+
     <pre>var chart=yield (ESQuery.run({
     	"from":"bugs",
     	"select": {"name":"num_bug", "value":"bug_id", "aggregate":"count"},
