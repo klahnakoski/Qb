@@ -130,8 +130,8 @@ replaced with simply the value:
 
 
 
-  - **name** – The name of the attribute.   Optional if ```value``` is a simple variable name.
-  - **value** – Code to generate the attribute value (MVEL for ES, Javascript otherwise)
+  - **name** – The name given to the resulting attribute.   Optional if ```value``` is a simple variable name.
+  - **value** – Name of the attribute, or list of attributes, or lambda, or source code to generate the attribute value (MVEL for ES)
   - **aggregate** – one of many aggregate operations
   - **default** to replace null in the event there is no data
   - **sort** – one of ```increasing```, ```decreasing``` or ```none``` (default).  Only meaningful when the output of the query is a list, not a cube.

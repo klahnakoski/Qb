@@ -1,16 +1,16 @@
 
-Search Bugs with ElasticSearch
-------------------------------
+Search Bugs Fast with ElasticSearch
+===================================
 
 Running Examples (Query Tool)
-=============================
+-----------------------------
 
 [ElasticSearch Head](https://github.com/mobz/elasticsearch-head) is a simple
 tool for sending general queries.  [Query Tool](../html/QueryTool.html) can be used to prototype Qb
 queries, and see their equivalent ES query.  Please ```git clone``` both of these projects and open in your browser.
 
 Schema
-======
+------
 
 The history of each bug is stored as a set of documents.  Each document is a
 snapshot of the bug between ```modified_ts``` and ```expires_on```.  All times
@@ -19,7 +19,7 @@ are in milliseconds since epoch (GMT).
 The current schema can be pulled using ElasticSearch Head.  You can view the simpler [schema used by the ETL](https://github.com/klahnakoski/Bugzilla-ETL/blob/df89c80428ae78fd53b4a05bd94c5949130e6898/resources/json/bug_version.json#L105)
 
 Query Current State of All Bugs
-===============================
+-------------------------------
 
 It is common to query the current bug state.  To do this you take advantage of
 the fact that current documents have ```expires_on``` set to the deep future.
@@ -63,7 +63,7 @@ use a ```cf_``` prefix on tracking flags; Our filter looks like
 <b>Qb Query</b>
 <pre>{
   "from":"public_bugs",
-  <strong>"select":"_source",  # magic word '_source'</strong> 
+  <strong>"select":"_source",  # magic word '_source'</strong>
   "esfilter":{"and":[
     {"range":{"expires_on":{"gte":1389389493271}}},
     {"term":{"cf_blocking_b2g":"koi+"}}
@@ -385,15 +385,15 @@ Private Bugs
 The public cluster does not contain Mozilla's confidential bugs.  Most of
 these are internal network and infrastructure bugs, product security bugs, and
 administrative "bugs".  Mozilla has an VPN-accessible private cluster with
-those additional private bugs, but is handicapped by having no comments or 
-descriptions.  When querying aggregates you must be cognisant of this 
+those additional private bugs, but is handicapped by having no comments or
+descriptions.  When querying aggregates you must be cognisant of this
 difference.
 
-If you have access to the private cluster you can call up the private bugs with 
-```{"not":{"missing":{"field":"bug_group"}}}``` - which means any bug that 
+If you have access to the private cluster you can call up the private bugs with
+```{"not":{"missing":{"field":"bug_group"}}}``` - which means any bug that
 belongs to a bug_group is a private bug.
 
-This example pulls the current number of open private bugs by product.  If you 
+This example pulls the current number of open private bugs by product.  If you
 run this on the public cluster, you will get zeros.
 
 <table>
