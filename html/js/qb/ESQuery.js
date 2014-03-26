@@ -34,8 +34,8 @@ ESQuery.INDEXES={
 	"public_bugs":{"host":"https://esfrontline.bugzilla.mozilla.org:443", "path":"/public_bugs/bug_version"},
 	"public_bugs_backend":{"host":"http://elasticsearch1.bugs.scl3.mozilla.com:9200", "path":"/public_bugs/bug_version"},
 	"public_bugs_proxy":{"host":"http://klahnakoski-es.corp.tor1.mozilla.com:9201", "path":"/public_bugs/bug_version"},
-    "public_comments": {"host": "http://elasticsearch1.bugs.scl3.mozilla.com:9200", "path": "/public_comments/bug_comment"},
-    "private_bugs": {"host": "http://elasticsearch6.bugs.scl3.mozilla.com:9200", "path": "/private_bugs/bug_version"},
+		"public_comments": {"host": "http://elasticsearch1.bugs.scl3.mozilla.com:9200", "path": "/public_comments/bug_comment"},
+		"private_bugs": {"host": "http://elasticsearch6.bugs.scl3.mozilla.com:9200", "path": "/private_bugs/bug_version"},
 	"private_comments":{"host":"http://elasticsearch4.bugs.scl3.mozilla.com:9200", "path":"/private_comments/bug_comment"},
 
 	"tor_bugs":{"host":"http://klahnakoski-es.corp.tor1.mozilla.com:9200", "path":"/bugs/bug_version"},
@@ -63,10 +63,10 @@ ESQuery.INDEXES={
 	"raw_telemetry":{"host":"http://klahnakoski-es.corp.tor1.mozilla.com:9200", "path":"/raw_telemetry/data"},
 
 	"talos":{"host":"http://klahnakoski-es.corp.tor1.mozilla.com:9200", "path":"/datazilla/results"},
-    "b2g_tests_kyle":{"host":"http://klahnakoski-es.corp.tor1.mozilla.com:9200", "path":"/b2g_tests/results"},
-    "b2g_tests":{"host":"http://elasticsearch4.bugs.scl3.mozilla.com:9200", "path":"/b2g_tests/results"},
+		"b2g_tests_kyle":{"host":"http://klahnakoski-es.corp.tor1.mozilla.com:9200", "path":"/b2g_tests/results"},
+		"b2g_tests":{"host":"http://elasticsearch4.bugs.scl3.mozilla.com:9200", "path":"/b2g_tests/results"},
 
-    "perfy": {"host": "http://elasticsearch-private.bugs.scl3.mozilla.com:9200", "path": "/perfy/scores"},
+		"perfy": {"host": "http://elasticsearch-private.bugs.scl3.mozilla.com:9200", "path": "/perfy/scores"},
 	"local_perfy":{"host":"http://localhost:9200", "path":"/perfy/scores"}
 
 };
@@ -151,53 +151,53 @@ ESQuery.loadColumns=function*(query){
 	//WE MANAGE ALL THE REQUESTS FOR THE SAME SCHEMA, DELAYING THEM IF THEY COME IN TOO FAST
 	if (indexInfo.fetcher === undefined) {
 		indexInfo.fetcher=Thread.run(function*(){
-            currInfo=indexInfo;
-            var depth = 0;
-            var attempts=[];
-            var schemas=[];
-            var info=[];
+				currInfo=indexInfo;
+				var depth = 0;
+				var attempts=[];
+				var schemas=[];
+				var info=[];
 
-            //TRY ALL HOSTS AND PATHS
-            while (currInfo!==undefined){
-                info[depth]=currInfo;
-                schemas[depth]=null;
-                (function(ii, d){
-                    attempts[d]=Thread.run(function*(){
-                        schemas[d]=yield (ESQuery.loadSchema(query, indexName, ii));
-                    });
-                })(currInfo, depth);
-                currInfo = currInfo.alternate;
-                depth++;
-            }//while
+				//TRY ALL HOSTS AND PATHS
+				while (currInfo!==undefined){
+					info[depth]=currInfo;
+					schemas[depth]=null;
+					(function(ii, d){
+						attempts[d]=Thread.run(function*(){
+							schemas[d]=yield (ESQuery.loadSchema(query, indexName, ii));
+						});
+					})(currInfo, depth);
+					currInfo = currInfo.alternate;
+					depth++;
+				}//while
 
-            //FIND THE FIRST TO RESPOND
-            var schema = null;
-            while (schema==null){
-                var hope=false;
-                try{
-                    for(var s=0;s<schemas.length;s++){
-                        if (attempts[s].keepRunning || schemas[s]!=null){
-                            hope=true;
-                            yield (attempts[s].join(900));  //WE WILL ONLY WAIT FOR THE FIRST
-                        }//endif
-                    }//for
-                }catch(e){
-                    //DO NOTHING
-                }//try
-                if (!hope){
-                    yield (Exception("Can not locate any cluster"));
-                }//endif
+				//FIND THE FIRST TO RESPOND
+				var schema = null;
+				while (schema==null){
+					var hope=false;
+					try{
+						for(var s=0;s<schemas.length;s++){
+							if (attempts[s].keepRunning || schemas[s]!=null){
+								hope=true;
+								yield (attempts[s].join(900));  //WE WILL ONLY WAIT FOR THE FIRST
+							}//endif
+						}//for
+					}catch(e){
+						//DO NOTHING
+					}//try
+					if (!hope){
+						yield (Exception("Can not locate any cluster"));
+					}//endif
 
-                for(var s=0;s<schemas.length;s++){
-                    if (schemas[s]!=null){
-                        currInfo = info[s];
-                        schema = schemas[s];
-                        break;
-                    }//endif
-                }//for
-            }//while
+					for(var s=0;s<schemas.length;s++){
+						if (schemas[s]!=null){
+							currInfo = info[s];
+							schema = schemas[s];
+							break;
+						}//endif
+					}//for
+				}//while
 
-            Map.copy(currInfo, indexInfo);
+				Map.copy(currInfo, indexInfo);
 			var properties = schema.properties;
 			indexInfo.columns = ESQuery.parseColumns(indexName, undefined, properties);
 			yield(null);
@@ -210,51 +210,51 @@ ESQuery.loadColumns=function*(query){
 
 
 ESQuery.loadSchema=function*(query, indexName, indexInfo){
-    if (indexInfo.host===undefined) Log.error("must have host defined");
+		if (indexInfo.host===undefined) Log.error("must have host defined");
    	var indexPath=indexInfo.path;
    	if (indexName=="bugs" && !indexPath.endsWith("/bug_version")) indexPath+="/bug_version";
    	if (indexInfo.columns!==undefined)
    		yield(null);
 
-    var URL=nvl(query.url, indexInfo.host + indexPath) + "/_mapping";
-    var path = parse.URL(URL).pathname.split("/").rightBut(1);
-    var pathLength = path.length - 1;  //ASSUME /indexname.../_mapping
+		var URL=nvl(query.url, indexInfo.host + indexPath) + "/_mapping";
+		var path = parse.URL(URL).pathname.split("/").rightBut(1);
+		var pathLength = path.length - 1;  //ASSUME /indexname.../_mapping
 
-    var schema = null;
-    try{
-        schema = yield(Rest.get({
-            "url":URL,
-            "doNotKill":true        //WILL NEED THE SCHEMA EVENTUALLY
-        }));
-    } catch(e){
-        Log.note("call to "+URL+" has failed");
-        yield (null)
-    }//try
+		var schema = null;
+		try{
+			schema = yield(Rest.get({
+				"url":URL,
+				"doNotKill":true        //WILL NEED THE SCHEMA EVENTUALLY
+			}));
+		} catch(e){
+			Log.note("call to "+URL+" has failed");
+			yield (null)
+		}//try
 
-    if (pathLength == 1){  //EG http://host/_mapping
-        //CHOOSE AN INDEX
-        prefix = URL.split("/")[3];
-        indicies = Object.keys(schema);
-        if (indicies.length == 1){
-            schema = schema[indicies[0]]
-        } else{
-            schema = mapAllKey(function(k, v){
-                if (k.startsWith(prefix)) return v;
-            })[0]
-        }//endif
-    }//endif
+		if (pathLength == 1){  //EG http://host/_mapping
+			//CHOOSE AN INDEX
+			prefix = URL.split("/")[3];
+			indicies = Object.keys(schema);
+			if (indicies.length == 1){
+				schema = schema[indicies[0]]
+			} else{
+				schema = mapAllKey(function(k, v){
+					if (k.startsWith(prefix)) return v;
+				})[0]
+			}//endif
+		}//endif
 
-    if (pathLength <= 2){//EG http://host/indexname/typename/_mapping
-        var types = Object.keys(schema);
-        if (types.length == 1){
-            schema = schema[types[0]];
-        } else if (schema[indexPath.split("/")[2]] !== undefined){
-            schema = schema[indexPath.split("/")[2]];
-        } else{
-            schema = schema[types[0]];
-        }//endif
-    }//endif
-    yield (schema);
+		if (pathLength <= 2){//EG http://host/indexname/typename/_mapping
+			var types = Object.keys(schema);
+			if (types.length == 1){
+				schema = schema[types[0]];
+			} else if (schema[indexPath.split("/")[2]] !== undefined){
+				schema = schema[indexPath.split("/")[2]];
+			} else{
+				schema = schema[types[0]];
+			}//endif
+		}//endif
+		yield (schema);
 };//function
 
 
@@ -309,15 +309,17 @@ ESQuery.prototype.run = function*(){
 
 			}//endif
 		}catch(e){
-			if (!e.contains(Exception.TIMEOUT)){
+			if (!e.contains(Exception.TIMEOUT)) {
 				throw e;
-			}else{
+			} else if (e.contains.indexOf("dynamic scripting disabled")) {
+				Log.error("Public cluster can not be used", e)
+			} else {
 				Log.action("Query timeout");
 				this.nextDelay = nvl(this.nextDelay, 500) * 2;
 				yield (Thread.sleep(this.nextDelay));
 				Log.action("Retrying Query...");
 				//TODO: TRY TO DO TAIL-RECURSION
-				var output=yield (this.run());
+				var output = yield (this.run());
 				yield output;
 			}//endif
 		}//try
@@ -523,7 +525,7 @@ ESQuery.prototype.buildFacetQueries = function(){
 
 	var esFacets = this.getAllEdges(0);
 	for(var i = 0; i < esFacets.length; i++){
-		var condition = [];
+		var condition = [this.query.esfilter];
 		var name = "";
 		var constants=[];
 		if (this.facetEdges.length==0){
@@ -563,6 +565,11 @@ ESQuery.prototype.buildFacetQueries = function(){
 					}
 				};
 			}//endif
+				if ((this.termsEdges.length==1 && this.termsEdges[0] && this.termsEdges[0].sort==1) || (this.specialEdge && this.specialEdge.sort==1)){
+					q.value.terms.order="term";
+				}else if ((this.termsEdges.length==1 && this.termsEdges[0] && this.termsEdges[0].sort==1) || (this.specialEdge && this.specialEdge.sort==-1)){
+					q.value.terms.order="reverse_term";
+				}//endif
 		}else if (this.esMode == "terms_stats"){
 			if (value.type=="field"){
 				q.value = {
@@ -582,6 +589,11 @@ ESQuery.prototype.buildFacetQueries = function(){
 				};
 
 			}
+				if (this.specialEdge && this.specialEdge.sort==1){
+					q.value.terms_stats.order="term";
+				}else if (this.specialEdge && this.specialEdge.sort==-1){
+					q.value.terms_stats.order="reverse_term";
+				}//endif
 		} else{//statistical
 			if (value.type=="field"){
 				q.value = {
@@ -623,6 +635,14 @@ ESQuery.prototype.getAllEdges = function(edgeDepth){
 			output.push(deeper[o]);
 		}//for
 	}//for
+	if (edge.allowNulls){
+		edge.domain.NULL.dataIndex=partitions.length;
+		deeper = this.getAllEdges(edgeDepth + 1);
+		for(o = 0; o < deeper.length; o++){
+			deeper[o].unshift(edge.domain.NULL);
+			output.push(deeper[o]);
+		}//for
+	}//endif
 	return output;
 };//method
 
@@ -871,26 +891,27 @@ ESQuery.prototype.compileEdges2Term=function(constants){
 	}//endif
 
 	//IF THE QUERY IS SIMPLE ENOUGH, THEN DO NOT USE TERM PACKING
-	if (edges.length==1 && ["set", "default"].contains(edges[0].domain.type)){
+	var onlyEdge=this.termsEdges[0];
+	if (this.termsEdges.length==1 && ["set", "default"].contains(onlyEdge.domain.type)){
 		//THE TERM RETURNED WILL BE A MEMBER OF THE GIVEN SET
 		this.term2Parts=function(term){
-			return [edges[0].domain.getPartByKey(term)];
+			return [onlyEdge.domain.getPartByKey(term)];
 		};
 
-		if (edges[0].value===undefined && edges[0].domain.partitions!==undefined){
+		if (onlyEdge.value===undefined && onlyEdge.domain.partitions!==undefined){
 			var script=MVEL.Parts2TermScript(
 				self.query.from,
-				edges[0].domain
+				onlyEdge.domain
 			);
 			return {"type":"script", "value":MVEL.compile.expression(script, this.query, constants)};
 		}//endif
 
-		if (edges[0].esscript){
-			return {"type":"script", "value":MVEL.compile.addFunctions(edges[0].esscript)};
-		}else if (MVEL.isKeyword(edges[0].value)){
-			return {"type":"field", "value":edges[0].value};
+		if (onlyEdge.esscript){
+			return {"type":"script", "value":MVEL.compile.addFunctions(onlyEdge.esscript)};
+		}else if (MVEL.isKeyword(onlyEdge.value)){
+			return {"type":"field", "value":onlyEdge.value};
 		}else{
-			return {"type":"script", "value":MVEL.compile.expression(edges[0].value, this.query, constants)};
+			return {"type":"script", "value":MVEL.compile.expression(onlyEdge.value, this.query, constants)};
 		}//endif
 	}//endif
 
@@ -1164,13 +1185,18 @@ ESQuery.prototype.termsResults=function(data){
 
 	//NUMBER ALL EDGES FOR Qb INDEXING
 	for(var f=0;f<this.query.edges.length;f++){
-		this.query.edges[f].index=f;
-		var parts=this.query.edges[f].domain.partitions;
+			var edge =this.query.edges[f];
+			if (edge.domain.type=="default"){
+				edge.domain.partitions.sort(edge.domain.compare);
+			}//endif
+
+		edge.index=f;
+		var parts=edge.domain.partitions;
 		var p=0;
 		for(;p<parts.length;p++){
 			parts[p].dataIndex=p;
 		}//for
-		this.query.edges[f].domain.NULL.dataIndex=p;
+		edge.domain.NULL.dataIndex=p;
 	}//for
 
 
@@ -1294,9 +1320,9 @@ ESQuery.agg2es = {
 //PROCESS RESULTS FROM THE ES STATISTICAL FACETS
 ESQuery.prototype.statisticalResults = function(data){
 	var cube;
-    var agg = this.select.map(function (s) {
-        return ESQuery.agg2es[s.aggregate];
-    });
+		var agg = this.select.map(function (s) {
+			return ESQuery.agg2es[s.aggregate];
+		});
 	var agg0=agg[0];
 	var self=this;
 
@@ -1435,11 +1461,11 @@ ESQuery.prototype.compileSetOp=function(){
 
 	if (this.esMode=="fields"){
 		this.esQuery.size=nvl(this.query.limit, 200000);
-        this.esQuery.sort = nvl(this.query.sort, []);
+			this.esQuery.sort = nvl(this.query.sort, []);
 		if (this.query.select.value!="_source"){
-            this.esQuery.fields = select.map(function (s) {
-                return s.value;
-            });
+				this.esQuery.fields = select.map(function (s) {
+					return s.value;
+				});
 		}//endif
 	}else if (!isDeep && select.length==1 && MVEL.isKeyword(select[0].value)){
 		this.esQuery.facets.mvel={
@@ -1466,7 +1492,7 @@ ESQuery.prototype.fieldsResults=function(data){
 
 	if (this.query.select instanceof Array){
 		for(var i = T.length; i--;){
-		    var record=T[i].fields
+		var record=T[i].fields
 			var new_rec={};
 			this.query.select.forall(function(s, j){
 				new_rec[s.name]=nvl(record[s.value], T[i][s.value]);
@@ -1508,9 +1534,9 @@ ESQuery.prototype.mvelResults=function(data){
 	select=this.query.select;
 	if (select instanceof Array) return;
 	//SELECT AS NO ARRAY (AND NO EDGES) MEANS A SIMPLE ARRAY OF VALUES, NOT AN ARRAY OF OBJECTS
-    this.query.list = this.query.list.map(function (v, i) {
-        return v[select.name];
-    });
+		this.query.list = this.query.list.map(function (v, i) {
+			return v[select.name];
+	});
 };//method
 
 
