@@ -14,6 +14,7 @@ Dimensions are similar to domain clauses in Qb queries, with additional attribut
   - **format** - convenience attribute instead of using the value function to convert a part to a string.  This will look at the type of domain, and use the default formatting function for that type.
   - **type** - type of domain ("set", "time", "duration", "numeric", "count", "boolean")
   - **esfilter** - limits the domain to a subset.  If this is undefined, then it will default to the union of all child dimensions.  This can often be bad because the esfilter can get complicated.  You will often see "esfilter":ESQuery.TrueFilter to simply set the domain to everything.
+  - **fullFilter** - partition filters are applied in the order the parts are declared in theory.  A record that matches a part will not match any other part in the partition.  Due to technical limitations of ES, this is not done in practice yet.  Until then, ```fullFilter``` can be used to get the non-overlapping filter rules for any part.
   - **isFacet** - force the partitions of this dimension to be split into ES facets.  This is required when the documents need to be multiply counted
   - **path** -  function that will map a value (usually pulled from ```field```) and converts it to partition path.  The dimension definition allows the programmer to define partitions of partitions, forming a tree.  A partition path is a path through that tree.  In the event the tree is left undefined, the datasource will be used to find all values and build the tree using the path function.  Return a single value if you want to simply parse a value into a nicer set of parts.
   - **edges** - the child edges, with further dimension attributes
@@ -35,7 +36,7 @@ Example:  Perfy test results have multiple benchmarks, each with a suite of test
         },
         "score":200
     }
-    
+
 The ```Box2D``` test can not be found in the other benchmarks, so is effectively one part of ```octane```.  The ```test``` property is a child of the ```benchmark``` property, and we declare it as such in the dimension definition:
 
     {
@@ -43,7 +44,7 @@ The ```Box2D``` test can not be found in the other benchmarks, so is effectively
         "type":"set",
         "field":["info.benchmark", "info.test"]
     }
-    
+
 If we were to organize the data to properly reflect the hierarchal nature, we could have used
 
     {
