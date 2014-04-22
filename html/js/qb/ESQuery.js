@@ -4,6 +4,7 @@
 
 
 importScript("../util/CNV.js");
+importScript("../collections/aArray.js");
 importScript("../util/aDate.js");
 importScript("../util/aUtil.js");
 importScript("../util/aParse.js");
@@ -43,6 +44,7 @@ ESQuery.INDEXES={
 	"tor_private_bugs":{"host":"http://klahnakoski-es.corp.tor1.mozilla.com:9200", "path":"/private_bugs/bug_version"},
 
 	"bug_hierarchy":{"host":"http://elasticsearch-private.bugs.scl3.mozilla.com:9200", "path":"/bug_hierarchy/bug_hierarchy"},
+	"public_bug_hierarchy":{"host":"https://esfrontline.bugzilla.mozilla.org:443", "path":"/bug_hierarchy/bug_hierarchy"},
 	//TODO: HAVE CODE SCAN SCHEMA FOR NESTED OPTIONS
 	"public_bugs.changes":{},
 	"public_bugs.attachments":{},
@@ -72,6 +74,7 @@ ESQuery.INDEXES={
 };
 
 ESQuery.INDEXES.bugs.alternate = ESQuery.INDEXES.public_bugs;
+ESQuery.INDEXES.bug_hierarchy.alternate = ESQuery.INDEXES.public_bug_hierarchy;
 
 
 ESQuery.getColumns=function(indexName){
@@ -92,7 +95,7 @@ ESQuery.parseColumns=function(indexName, parentName, esProperties){
 			var nestedName=indexName+"."+name;
 			if (ESQuery.INDEXES[nestedName]===undefined) ESQuery.INDEXES[nestedName]={};
 			ESQuery.INDEXES[nestedName].columns=ESQuery.parseColumns(nestedName, parentName, property.properties);
-			return;
+//			return;
 		}//endif
 
 		if (property.properties !== undefined) {
@@ -525,7 +528,7 @@ ESQuery.prototype.buildFacetQueries = function(){
 
 	var esFacets = this.getAllEdges(0);
 	for(var i = 0; i < esFacets.length; i++){
-		var condition = [this.query.esfilter];
+		var condition = [];
 		var name = "";
 		var constants=[];
 		if (this.facetEdges.length==0){
@@ -813,6 +816,7 @@ ESQuery.prototype.buildESCountQuery=function(value){
 	if (MVEL.isKeyword(value)){
 		//MAKE SURE value EXISTS
 		output.query.filtered.filter.and.push({"exists":{"field":value}});
+		output.size = 1;  //PREVENT QUERY CHECKER FROM THROWING ERROR
 	}else{
 		//COMPLICATED value IS PROBABLY A SCRIPT, USE IT
 		output.facets["0"]={
@@ -1156,7 +1160,14 @@ ESQuery.prototype.termsResults=function(data){
 	if (data.facets === undefined || data.facets.length==0){
 		//SIMPLE ES QUERY
 		if (this.query.select instanceof Array){
-			Log.error("TODO: implement be (pull fields)")
+			this.query.cube = Map.zip(this.select.map(function(s){
+				if (s.aggregate=="count"){
+					return [s.name, data.hits.total];
+				}else{
+					Log.error("Do not know how to handle yet")
+				}//endif
+			}));
+			return;
 		}else if (this.select[0].aggregate=="count"){
 			if (this.query.edges.length>0){
 				Log.error("not expected, expecting facets");

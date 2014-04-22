@@ -953,7 +953,7 @@ Qb.domain.set = function(column, sourceColumns){
 		////////////////////////////////////////////////////////////////////////
 		//FIND A "==" OPERATOR AND USE IT TO DEFINE AN INDEX INTO THE DOMAIN'S VALUES
 		//THIS IS HACKY OPTIMIZATION, BUT SEVERELY REQUIRED BECAUSE JOINS WILL
-		//SQUARE OR Qb QUICKLY WITHOUT IT
+		//SQUARE OR CUBE QUICKLY WITHOUT IT
 		////////////////////////////////////////////////////////////////////////
 		if (column.test.indexOf("||") >= 0){
 			Log.warning("Can not optimize test condition with a OR operator: {" + column.test + "}");
@@ -1149,9 +1149,9 @@ Qb.domain.set.compileKey=function(domain){
 			var f =
 				"newGetKeyFunction=function(__part){\n"+
 				"	if (__part==this.NULL) return null;\n";
-					for(var att in partition){
-						if (key.indexOf(att) >= 0) f += "var " + att + "=__part." + att + ";\n";
-					}//for
+					forAllKey(partition, function(attrName, value){
+						if (key.indexOf(attrName) >= 0) f += "var " + attrName + "=__part." + attrName + ";\n";
+					});
 			f+=	"	return "+key+"\n"+
 				"}";
 			eval(f);
