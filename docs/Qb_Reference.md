@@ -24,6 +24,12 @@ Design
 Generally, Qb queries are meant to look much like a JSON Abstract Syntax Tree (AST) of SQL.  There are differences when
 it comes to ```group by``` and joins, but that is the influence of MDX.
 
+Intended Audience
+-----------------
+
+This document is only a reference document.  It is expected the reader already
+knows how to write Qb queries.  For a tutorial, start [here](BZ_Tutorial.md)
+
 
 Nomenclature
 ------------
@@ -254,11 +260,7 @@ Every edge must be limited to one of a few basic domain types.  Which further de
 window
 ------
 
-The window clause defines a sequence of window functions to be applied to the
-result set.  Each window function defines an additional attribute, and does not
-affect the  number of rows returned.  For each window, the data is grouped,
-sorted and assigned a ```rownum``` attribute that can be used to calculate the
-attribute value.
+The window clause defines a sequence of window functions to be applied to the result set.  Each window function defines an additional attribute, and does not affect the  number of rows returned.  For each window, the data is grouped, sorted and assigned a ```rownum``` attribute that can be used to calculate the attribute value.
 
   - **name** – name given to resulting attribute
   - **value** – can be a function (or a string containing javascript code) to determine the attribute value.  The functions is passed three special variables:
