@@ -162,6 +162,8 @@ ES.  ES only supports (count, sum, mean, variance).
     - **select.separator** to put between each of the joined values
   - **array** - return an array of values (which can have duplicates)
     - **select.sort** - optional, to return the array sorted
+  - **union** - return an array of unique values.  In the case of javascript, uniquness is defined as the string the object can be coorced to (```""+a == ""+b```).
+
 
 
 where
@@ -252,7 +254,11 @@ Every edge must be limited to one of a few basic domain types.  Which further de
 window
 ------
 
-Each window column defines an additional attribute for the result set.  A window column does not change the number of rows returned.  For each window, the data is grouped, sorted and assigned a ```rownum``` attribute that can be used to calculate the attribute value.
+The window clause defines a sequence of window functions to be applied to the
+result set.  Each window function defines an additional attribute, and does not
+affect the  number of rows returned.  For each window, the data is grouped,
+sorted and assigned a ```rownum``` attribute that can be used to calculate the
+attribute value.
 
   - **name** – name given to resulting attribute
   - **value** – can be a function (or a string containing javascript code) to determine the attribute value.  The functions is passed three special variables:
@@ -262,6 +268,9 @@ Each window column defines an additional attribute for the result set.  A window
   - **edges** – an array of column names used to determine the groups
   - **where** – code that returns true/false to indicate if a record is a member of any group.  This will not affect the number of rows returned, only how the window is calculated.  If where returns false then rownum and rows will both be null:  Be sure to properly handle those values in your code.
   - **sort** – a single attribute name, or array of attribute names, used to sort the members of each group
+
+**Please note: The javascript Qb library uses "analytic" instead of "window".**
+
 
 Pre-Defined Dimensions
 ----------------------
@@ -275,7 +284,7 @@ have been pre-defined](https://github.com/klahnakoski/Qb/blob/master/html/es/js/
 
     <pre>var details=yield(ESQuery.run({
         "from":"bugs",
-    	"select":[
+        "select":[
     		"bug_id",
     		<b>Mozilla.BugStatus.getSelect()</b>,
     		"assigned_to",

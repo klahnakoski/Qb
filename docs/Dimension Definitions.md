@@ -9,7 +9,7 @@ A dimension can consists of child edges or child partitions.  Child edges are al
 Dimensions are similar to domain clauses in Qb queries, with additional attributes to help apply that domain over many different queries.
 
   - **name** - humane words to describe the child dimension
-  - **field** - full path name of a field in the json record.  This will be used as the value in the query's edge
+  - **field** - full path name of a field (eg ```"field":"test_build.branch"```) in the json record.  This will be used as the value in the query's edge.  You may also provide an array of fields (eg ```"field":["test_machine.os", "test_machine.osversion"]```) which will define a unique tuple for each domain part (see Hierarical Partitions, below).
   - **value** - function to convert a part object into a humane string for final presentation.  **Default:** ```function(v){return v.name;}```
   - **format** - convenience attribute instead of using the value function to convert a part to a string.  This will look at the type of domain, and use the default formatting function for that type.
   - **type** - type of domain ("set", "time", "duration", "numeric", "count", "boolean")
@@ -22,8 +22,8 @@ Dimensions are similar to domain clauses in Qb queries, with additional attribut
   - **partitions** - he child partitions, which can be further partitioned if required
 
 
-Hierarical Partitions
----------------------
+Hierarchical Partitions
+-----------------------
 
 Some properties domain values are functionally dependent on another.  You can have the field attribute be a list of property names, in dependency order.  This will make a hierarchy of partiitons for you,  while merging the two properties in to the effective one that they are.
 
