@@ -44,6 +44,15 @@ ESQuery.INDEXES={
 	"tor_private_bugs":{"host":"http://klahnakoski-es.corp.tor1.mozilla.com:9200", "path":"/private_bugs/bug_version"},
 
 	"bug_hierarchy":{"host":"http://elasticsearch-private.bugs.scl3.mozilla.com:9200", "path":"/bug_hierarchy/bug_hierarchy"},
+	"bug_dependencies":{"host":"https://esfrontline.bugzilla.mozilla.org:443", "path":"/bug_hierarchy/bug_version"},
+
+
+	"public_bug_hierarchy":{"host":"https://esfrontline.bugzilla.mozilla.org:443", "path":"/bug_hierarchy/bug_hierarchy"},
+
+	"bug_dependencies":{"host":"http://elasticsearch-private.bugs.scl3.mozilla.com:9200", "path":"/private_bugs/bug_version"},
+	"public_bug_dependencies":{"host":"https://esfrontline.bugzilla.mozilla.org:443", "path":"/bug_hierarchy/bug_version"},
+
+
 	"public_bug_hierarchy":{"host":"https://esfrontline.bugzilla.mozilla.org:443", "path":"/bug_hierarchy/bug_hierarchy"},
 	//TODO: HAVE CODE SCAN SCHEMA FOR NESTED OPTIONS
 	"public_bugs.changes":{},
@@ -64,18 +73,18 @@ ESQuery.INDEXES={
 	"telemetry":{"host":"http://elasticsearch-private.bugs.scl3.mozilla.com:9200", "path":"/telemetry_agg_valid_201305/data"},
 	"raw_telemetry":{"host":"http://klahnakoski-es.corp.tor1.mozilla.com:9200", "path":"/raw_telemetry/data"},
 
-	"talos":{"host":"http://klahnakoski-es.corp.tor1.mozilla.com:9200", "path":"/datazilla/results"},
-		"b2g_tests_kyle":{"host":"http://klahnakoski-es.corp.tor1.mozilla.com:9200", "path":"/b2g_tests/results"},
-		"b2g_tests":{"host":"http://elasticsearch4.bugs.scl3.mozilla.com:9200", "path":"/b2g_tests/results"},
+	"talos":{"host":"http://elasticsearch-private.bugs.scl3.mozilla.com:9200", "path":"/talos/test_results"},
+	"b2g_tests":{"host":"http://elasticsearch-private.bugs.scl3.mozilla.com:9200", "path":"/b2g_tests/results"},
 
-		"perfy": {"host": "http://elasticsearch-private.bugs.scl3.mozilla.com:9200", "path": "/perfy/scores"},
+	"perfy": {"host": "http://elasticsearch-private.bugs.scl3.mozilla.com:9200", "path": "/perfy/scores"},
 	"local_perfy":{"host":"http://localhost:9200", "path":"/perfy/scores"}
 
 };
 
+//TRY PRIVATE CLUSTER FIRST, THEN FALL BACK TO PUBLIC
 ESQuery.INDEXES.bugs.alternate = ESQuery.INDEXES.public_bugs;
 ESQuery.INDEXES.bug_hierarchy.alternate = ESQuery.INDEXES.public_bug_hierarchy;
-
+ESQuery.INDEXES.bug_dependencies.alternate = ESQuery.INDEXES.public_bug_dependencies;
 
 ESQuery.getColumns=function(indexName){
 	var index=ESQuery.INDEXES[indexName];
@@ -121,6 +130,10 @@ ESQuery.parseColumns=function(indexName, parentName, esProperties){
 		}//endif
 
 
+		if (property.type=="object"){
+			//OBJECT WITH NO PROPERTIES IS NOT INDEXED, JUST STORED
+			columns.push({"name":fullName, "type":property.type, "useSource":true});
+		}else
 		if (["string", "boolean", "integer", "date", "long", "double"].contains(property.type)){
 			columns.push({"name":fullName, "type":property.type, "useSource":property.index=="no"});
 			if (property.index_name && name!=property.index_name)
@@ -414,7 +427,7 @@ ESQuery.prototype.compile = function(){
 	var extraSelect=[];
 	this.query.edges.forall(function(e){
 		if (e.domain !== undefined && Qb.domain.ALGEBRAIC.contains(e.domain.type) &&  e.domain.interval == "none"){
-			extraSelect.append({"name":e.name, "value":e.value});
+			extraSelect.append({"name":e.name, "value":e.value, "domain": e.domain});
 		}//endif
 	});
 

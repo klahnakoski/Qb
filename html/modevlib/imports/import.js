@@ -4,6 +4,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ////////////////////////////////////////////////////////////////////////////////
 // Author: Kyle Lahnakoski  (kyle@lahnakoski.com)
+// Documentation: https://github.com/klahnakoski/jsImport/blob/master/README.md
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -19,7 +20,7 @@ var importScript;
 (function () {
 
 	var METHOD_NAME = "importScript";
-	var FORCE_RELOAD = false;  //COMPENSATE FOR BUG https://bugzilla.mozilla.org/show_bug.cgi?id=991252
+	var FORCE_RELOAD = true;  //COMPENSATE FOR BUG https://bugzilla.mozilla.org/show_bug.cgi?id=991252
 	var DEBUG = false;
 
 	if (typeof(window.Log) == "undefined") {
@@ -230,7 +231,7 @@ var importScript;
 				script.type = 'text/javascript';
 				script.onload = onLoadCallback;
 				script.async = false;
-				script.src = netPaths[i] + (FORCE_RELOAD ?  ("?" + new Date().getTime()) : "");  //RANDOM ENDING FORCES A REAL RELOAD;
+				script.src = netPaths[i] + (FORCE_RELOAD ? ("?" + new Date().getTime()) : "");  //RANDOM ENDING FORCES A REAL RELOAD;
 				frag.appendChild(script);
 			}//endif
 		}//for
