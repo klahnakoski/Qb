@@ -270,6 +270,10 @@ The window clause defines a sequence of window functions to be applied to the re
   - **edges** – an array of column names used to determine the groups
   - **where** – code that returns true/false to indicate if a record is a member of any group.  This will not affect the number of rows returned, only how the window is calculated.  If where returns false then rownum and rows will both be null:  Be sure to properly handle those values in your code.
   - **sort** – a single attribute name, or array of attribute names, used to sort the members of each group
+  - **range** - the interval which the window function will apply, outside the range the ```row``` is null.  Only makes sense when **sort** is defined
+      - **min** - offset from ```rownum``` where window starts
+      - **max** - offset from ```rownum``` where window ends (```rows[rownum + max] == null```)
+  - **aggregate** - an aggregate function to apply on **value** over the **range**, (or whole group if range is not defined)
 
 **Please note: The javascript Qb library uses "analytic" instead of "window".**
 
@@ -287,7 +291,7 @@ have been pre-defined](https://github.com/klahnakoski/Qb/blob/master/html/es/js/
     <pre>var details=yield(ESQuery.run({
         "from":"bugs",
         "select":[
-    		"bug_id",
+        	"bug_id",
     		<b>Mozilla.BugStatus.getSelect()</b>,
     		"assigned_to",
     		{"name":"dependson", "value":"get(_source, \"dependson\")"},
