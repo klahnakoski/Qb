@@ -1,4 +1,4 @@
-MVEL Tutorial
+MVEL Tutorial (incomplete)
 =============
 
 About MVEL
@@ -147,7 +147,7 @@ Here is an example:
 
 ### previous_values ###
 
-This structure holds any 
+This structure holds any
 
     previous_values: {
         bug_status_change_to_ts: 956161485000
@@ -187,7 +187,7 @@ full path of all variables is required
 	"sort":[],
 	"facets":{"mvel":{"terms":{
 		"script_field":"""
-        
+
   var get = function(hash, key){
 if (hash==null) null; else hash[key];
 };
@@ -195,9 +195,9 @@ var Value2Pipe = function(value){
 if (value==null){ “0” }else if (value is ArrayList || value is org.elasticsearch.common.mvel2.util.FastList){var out = ““;
 foreach (v : value) out = (out==““) ? v : out + “|” + Value2Pipe(v);
 'a'+Value2Pipe(out);
-}else 
-if (value is Long || value is Integer || value is Double){ 'n'+value; }else 
-if (!(value is String)){ 's'+value.getClass().getName(); }else 
+}else
+if (value is Long || value is Integer || value is Double){ 'n'+value; }else
+if (!(value is String)){ 's'+value.getClass().getName(); }else
 “s”+value.replace(“\\”, “\\\\”).replace(“|”, “\\p”);};
 var _1000 = function(private_bugs){
 output=““;

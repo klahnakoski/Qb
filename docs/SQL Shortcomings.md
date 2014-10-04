@@ -3,47 +3,105 @@
 SQL Shortcomings
 ================
 
-Here is a core dump of the anti-patterns I see when dealing with SQL.  One day I will detail the problems, an show the Qb query solutions
+Here is a unordered list of the anti-patterns I see when dealing with SQL.  It is a personal note to myself, but I hope to expand it to explain the benefits of Qb queries. solutions
+
+This document serves to provide motvation for a query language beyond standard SQL.
+
+
+Meta Programming
+----------------
+
+Qb is a query language optimized specifically for hierarchical databases, nested
+JSON, and data warehouses.  A major feature of a Qb is it's JSON; and capable
+of operating on itself.  Many of the SQL shortcomings are a result of SQL not
+having no macros.
 
 
 
+###Splitting credit and debit
 
-Splitting credit and debit
+Sometimes we would like to clarify positive and negative numbers in separate
+columns, like in accounting:
 
-    CASE WHEN sum(t.amount)>0 THEN round(sum(t.amount)/100,2) ELSE NULL END credit,
-    CASE WHEN sum(t.amount)<0 THEN round(sum(t.amount)/100,2) ELSE NULL END debit,
+    SELECT
+        account_number,
+        CASE WHEN sum(amount)>0 THEN amount ELSE NULL END credit,
+        CASE WHEN sum(amount)<0 THEN amount ELSE NULL END debit
+    FROM
+        transactions
 
-Money
 
-    SELECT 
-        case when w.txn_type='SEN' then round((w.principal_amount / 100),2) ELSE 0 end SendAmount,
-        case when w.txn_type='SEN' then round((w.charges / 100),2) else 0 end SendFees,
-        case when w.txn_type='REC' then round((w.principal_amount / 100),2) ELSE 0 end RefundAmount,
-        case when w.txn_type='REC' then round((w.charges / 100),2) else 0 end RefundFees
+Qb can (re)use domain definitions to abstract-away the query complexitities:
 
-Reporting multiple dimesions as columns
+    money = {
+        "name":"money",
+        "type":"set",
+        "partitions":[
+            {"name":"credit", "where":{"gte":{"amount": 0}}},
+            {"name":"debit", "where":{"lt":{"amount": 0}}},
+        ]
+    }
 
-    sum(case when code='thisDay' then num_opened else 0 end) thisDay_opened,
-    sum(case when code='thisDay' then num_closed else 0 end) thisDay_closed,
-    sum(case when code='this7Day' then num_opened else 0 end) this7Day_opened,
-    sum(case when code='this7Day' then num_closed else 0 end) this7Day_closed,
-    sum(case when code='thisMonth' then num_opened else 0 end) thisMonth_opened,
-    sum(case when code='thisMonth' then num_closed else 0 end) thisMonth_closed,
-    sum(case when code='lastMonth' then num_opened else 0 end) lastMonth_opened,
-    sum(case when code='lastMonth' then num_closed else 0 end) lastMonth_closed,
-    
+    {
+    "from": "transactions",
+    "select": "account_number",
+    "edges":[
+        {"value":"amount", "domain":money}
+    ]
+    }
+
+
+**Money**
+
+Partitioning records along more dimensions gets more painful with SQL:
+
+    SELECT
+        account_number,
+        CASE WHEN txn_type='SEND' THEN principal_amount  ELSE 0 end SendAmount,
+        CASE WHEN txn_type='SEND' THEN charges  else 0 end SendFees,
+        CASE WHEN txn_type='RECEIVE' THEN principal_amount  ELSE 0 end RefundAmount,
+        CASE WHEN txn_type='RECEIVE' THEN charges  else 0 end RefundFees
+    FROM
+        transfers
+
+
+
+    {
+    "from": "transactions",
+    "select": [
+        "principal_amount",
+        "charges"
+    ],
+    "edges":[
+        {"value":"txn_type", "domain":"txn_type"}
+    ]
+    }
+
+
+
+Reporting multiple dimensions as columns
+
+    sum(CASE WHEN code='thisDay' THEN num_opened else 0 end) thisDay_opened,
+    sum(CASE WHEN code='thisDay' THEN num_closed else 0 end) thisDay_closed,
+    sum(CASE WHEN code='this7Day' THEN num_opened else 0 end) this7Day_opened,
+    sum(CASE WHEN code='this7Day' THEN num_closed else 0 end) this7Day_closed,
+    sum(CASE WHEN code='thisMonth' THEN num_opened else 0 end) thisMonth_opened,
+    sum(CASE WHEN code='thisMonth' THEN num_closed else 0 end) thisMonth_closed,
+    sum(CASE WHEN code='lastMonth' THEN num_opened else 0 end) lastMonth_opened,
+    sum(CASE WHEN code='lastMonth' THEN num_closed else 0 end) lastMonth_closed,
+
 Normalizing to 1000's or millions
 
-    sum(case when code='thisDay' then 1000000*(num_opened)/population else 0 end) thisDay_opened_pct,
-    sum(case when code='thisDay' then 1000000*(num_closed)/population else 0 end) thisDay_closed_pct,
-    sum(case when code='this7Day' then 1000000*(num_opened)/population else 0 end) this7Day_opened_pct,
-    sum(case when code='this7Day' then 1000000*(num_closed)/population else 0 end) this7Day_closed_pct,
-    sum(case when code='thisMonth' then 1000000*(num_opened)/population else 0 end) thisMonth_opened_pct,
-    sum(case when code='thisMonth' then 1000000*(num_closed)/population else 0 end) thisMonth_closed_pct,
-    sum(case when code='lastMonth' then 1000000*(num_opened)/population else 0 end) lastMonth_opened_pct,
-    sum(case when code='lastMonth' then 1000000*(num_closed)/population else 0 end) lastMonth_closed_pct,
+    sum(CASE WHEN code='thisDay' THEN 1000000*(num_opened)/population else 0 end) thisDay_opened_pct,
+    sum(CASE WHEN code='thisDay' THEN 1000000*(num_closed)/population else 0 end) thisDay_closed_pct,
+    sum(CASE WHEN code='this7Day' THEN 1000000*(num_opened)/population else 0 end) this7Day_opened_pct,
+    sum(CASE WHEN code='this7Day' THEN 1000000*(num_closed)/population else 0 end) this7Day_closed_pct,
+    sum(CASE WHEN code='thisMonth' THEN 1000000*(num_opened)/population else 0 end) thisMonth_opened_pct,
+    sum(CASE WHEN code='thisMonth' THEN 1000000*(num_closed)/population else 0 end) thisMonth_closed_pct,
+    sum(CASE WHEN code='lastMonth' THEN 1000000*(num_opened)/population else 0 end) lastMonth_opened_pct,
+    sum(CASE WHEN code='lastMonth' THEN 1000000*(num_closed)/population else 0 end) lastMonth_closed_pct,
 
-Left join of dimenstion and ALL partitions
+Left join of dimension and ALL partitions
 
     FROM
         (
@@ -60,7 +118,7 @@ Left join of dimenstion and ALL partitions
         BLAH BLAH
 
 
-Again, the partions
+Again, the partitions
 
     LEFT JOIN
         temp_time_ranges r
@@ -93,20 +151,83 @@ Report by timezone, using num open, num closed, and net
     sum(CASE WHEN t.type='Load-Bank Transfer' THEN 1 ELSE 0 END)/91*30 numBankTransfer,
     sum(CASE WHEN t.type='Corporate Load' THEN 1 ELSE 0 END)/91*30 numCorporate
 
-Rule based partitions
+The benefit of partitions is that they are gaurenteed to not overlap.  In this case, the <code>Other</code> part is left with all remaining transaction types.  There is no double counting, and no missed values.
 
-    CASE
-    WHEN c.account__number IS NOT NULL AND b.account__number IS NOT NULL AND b.autoload=1 THEN 'has Both w Auto'
-    WHEN c.account__number IS NOT NULL AND b.account__number IS NOT NULL AND b.autoload=0 THEN 'has Both wo Auto'
-    WHEN c.account__number IS NOT NULL AND b.account__number IS NOT NULL THEN 'has Both'
-    WHEN c.account__number IS NOT NULL THEN 'has Card'
-    WHEN b.autoload=1 THEN 'has Bank w Auto'
-    WHEN b.autoload=0 THEN 'has Bank wo Auto'
-    WHEN b.account_number IS NOT NULL THEN 'has Bank'
-    ELSE 'No bank or card'
-    END category,
+    payType = {
+        "name":"payType",
+        "type":"set",
+        "partitions":[
+            {"name":"Fees", "where":{"term":{"type":"Fees"}}},
+            {"name":"BillPayment", "where":{"term":{"type":"Load-Bill Payment"}}},
+            {"name":"BankTransfer", "where":{"term":{"type":"Load-Bank Transfer"}}},
+            {"name":"Corporate", "where":{"term":{"type":"Corporate Load"}}},
+            {"name":"Other"}
+        ]
+    }
 
-Ordering for presentation
+    query = {
+    "from":transactions
+    "select":{"name":"num", "aggregate":"count"}
+    "edges":[
+        {"domain":payType}
+    ]
+    }
+
+
+If data can be split according to independent criterion, then you avoid the inevitable power-set that results.
+
+    SELECT
+        count(1) `count`
+        CASE
+        WHEN card_number IS NOT NULL AND b.bank_number IS NOT NULL AND b.autoload=1 THEN 'has Both w Auto'
+        WHEN card_number IS NOT NULL AND b.bank_number IS NOT NULL AND b.autoload=0 THEN 'has Both wo Auto'
+        WHEN card_number IS NOT NULL AND b.bank_number IS NOT NULL THEN 'has Both'
+        WHEN card_number IS NOT NULL THEN 'has Card'
+        WHEN b.autoload=1 THEN 'has Bank w Auto'
+        WHEN b.autoload=0 THEN 'has Bank wo Auto'
+        WHEN b.account_number IS NOT NULL THEN 'has Bank'
+        ELSE 'No bank or card'
+        END category,
+    FROM
+        accounts
+
+
+
+
+    statusDomain = {
+        "name":"category",
+        "type":"set",
+        "partitions":[
+            {"name":"has Both", "where":{"and":[
+                {"exists":"card_number"},
+                {"exists":"account_number"}
+            ]},
+            {"name":"has Card", "where":{"exists":"card_number"}},
+            {"name":"has Bank", "where":{"exists":"account_number"}},
+            {"name":"No bank or card"}
+        ]
+    }
+
+    autoDomain = {
+        "name":"category",
+        "type":"set",
+        "partitions":[
+            {"name":"w Auto", "where":{"eq":{"autoload": 1}}},
+            {"name":"wo Auto", "where":{"eq":{"autoload": 0}}},
+        ]
+    }
+
+    {
+    "from":accounts.
+    "select":{"name":"count", "aggregate":"count"}
+    "edges":[
+        {"name":"status", "domain":statusDomain},
+        {"name":"auto", "domain":autoDomain}
+    ]
+    }
+
+
+The using partition order to define the mutually exclusive sets reduces total number of rules written, but the order of presentation may be different
 
     ORDER BY
         CASE
@@ -120,7 +241,7 @@ Ordering for presentation
 
 And then same logic to show name
 
-    SELECT 
+    SELECT
         CASE
         WHEN w.is_Active=1 THEN 'is active'
         WHEN w.is_New=1 THEN 'is new'
@@ -130,12 +251,34 @@ And then same logic to show name
         ELSE 'is Closed'
         END status,
 
-Left join, just in case foreign key is missing
+### Summarize Everything
 
+You would think a database constraint would avoid certain imposibilities, but you would be wrong.  For possibly legal reasons the foreign key can be missing:
+
+    SELECT
+        a.name fullname,
+        count(t.id) num_transactions
     FROM
-        temp_transactions t
+        transactions t
     LEFT JOIN
         accounts w ON w.account_number=t.account_number
+    GROUP BY
+        t.account_number
+
+Using Qb, you always aggregate everything in the from clause:
+
+    {
+    "from":transactions
+    "select":{"name":"num_transactions", "aggregate":"count"},
+    "edges":[
+        {
+            "name":"fullname",
+            "label":"name",
+            "value":"account_number",
+            "domain":{"type":"set", "key":"account_number", "partitions":accounts}
+        }
+    ]
+    }
 
 Table of "standard", but not logical, partitions
 
@@ -197,15 +340,16 @@ using distinct to determine what the partitions are
     LEFT JOIN
         analysis.log_performance_backoffice b on b.resource=a.resource
 
+###Quazi-LogScale Tables
 
-Building quazi-log tables, that round to humane base10 values
+SQL demands I build a table that represents the irregular, but intuitive, data partitions.  Tables seem heavy-weight compared to a domain definition; if only because the details are realized as data, and that data must be constructed explicitly.
 
     CREATE PROCEDURE temp_fill_log_performance_ranges ()
     BEGIN
         DECLARE v INTEGER;
         DECLARE min_ INTEGER;
         DECLARE max_ INTEGER;
-    
+
         ## LOG SCALE
         SET v=0;
         WHILE v<30 DO
@@ -220,7 +364,7 @@ Building quazi-log tables, that round to humane base10 values
             );
             SET v=v+1;
         END WHILE;
-    
+
         ## MILLISECOND SCALE
         SET v=0;
         WHILE v<30 DO
@@ -234,7 +378,7 @@ Building quazi-log tables, that round to humane base10 values
             );
             SET v=v+1;
         END WHILE;
-    
+
         ## SECOND SCALE
         SET v=0;
         WHILE v<30 DO
@@ -248,7 +392,7 @@ Building quazi-log tables, that round to humane base10 values
             );
             SET v=v+1;
         END WHILE;
-    
+
     END;;
 
 Reporting the top N (based on larger sample), even though daily samples do not have same order
@@ -293,7 +437,7 @@ Dimension rollup
 
 Ordering, rollup and style
 
-    INSERT INTO categories VALUES (1, 'Load-Credit Card','blue', 'Load');
+    INSERT INTO categories (ordering, type, color, group) VALUES (1, 'Load-Credit Card','blue', 'Load');
     INSERT INTO categories VALUES (2, 'Retail Sales','blue', 'Spend');
     INSERT INTO categories VALUES (3, 'Savings','red', 'Spend');
     INSERT INTO categories VALUES (4, 'Previous Savings','red', 'Load');
@@ -310,6 +454,38 @@ Ordering, rollup and style
     INSERT INTO categories VALUES (17, 'Adjustment Load','cyan', 'Load');
     INSERT INTO categories VALUES (18, 'Adjustment Unload','cyan', 'Spend');
     INSERT INTO categories VALUES (19, 'Fees','light cyan', 'Spend');
+
+
+In SQL it is important to ```LEFT JOIN``` the categories in the event there are
+zero transactions in that category.  We also require an explicit ```ORDER BY```
+to maintain consistent presentation.
+
+    SELECT
+        c.type,
+        sum(amount) total,
+        c.color
+    FROM
+        categories c
+    LEFT JOIN
+        transactions t on t.type=c.type
+    GROUP BY
+        c.type,
+        c.color
+    ORDER BY
+        c.ordering
+
+
+    {
+    "from":"transactions",
+    "select":{"name":"total", "value":"amount", "aggregate":"sum"},
+    "edges"[
+        {"value":"type", "domain":"categories"}
+    ]
+    }
+
+
+
+
 
 
 Parsing data into columns
@@ -375,7 +551,7 @@ Get all in directory
 Clustered indexes for speed
 
 Filling in missing parts of domain
-    
+
     DECLARE @datadate DATETIME
     SET @datadate=dbo.to_date('20070225', 'YYYYMMDD')
     WHILE @datadate<getdate() BEGIN
@@ -387,17 +563,17 @@ Filling in missing parts of domain
 
 
     exec _drop 'ctx_existing'
-    SELECT 
-        datasource 
-    INTO 
-        ctx_existing
-    FROM 
-        bill
-    WHERE 
-        datasource NOT LIKE '%autogen%' 
-    GROUP BY 
+    SELECT
         datasource
-    
+    INTO
+        ctx_existing
+    FROM
+        bill
+    WHERE
+        datasource NOT LIKE '%autogen%'
+    GROUP BY
+        datasource
+
     DELETE FROM ctx_missing WHERE datasource IN (
         SELECT datasource FROM ctx_existing
     )
@@ -411,7 +587,7 @@ Setting default values, replacing invalid values:
     where
         quantity is null or
         quantity=0
-    
+
 
 Standard date format
 
@@ -421,28 +597,3 @@ Standard date format
 
 
 Copying whole lists of columns
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

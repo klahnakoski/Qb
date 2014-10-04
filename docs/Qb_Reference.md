@@ -93,9 +93,9 @@ over nested documents is not supported.
 select
 ------
 
-The select clause can be a single attribute definition, or an array of attribute definitions.  The former will result
-in nameless value in each data element of the resulting cube.  The latter will result in an object, with given
-attributes, in each data element
+The select clause can be a single attribute, or an array of attributes.  The former will result
+in nameless value inside each cell of the resulting cube.  The latter will result in an object, with given
+attributes, in each cell.
 
 Here is an example counting the current number of bugs (open and closed) in the KOI project:
 
@@ -156,11 +156,13 @@ ES.  ES only supports (count, sum, mean, variance).
   - **sum** – mathematical summation of values
   - **average** – mathematical average of values
   - **minimum** – return minimum value observed
-  - **median** – return median (percentile = 50%)
   - **maximum** – return maximum value observed
+  - **first** - return first value observed (assuming ordered ```from``` clause)
+  - **any** - return any value observed (that is not null, of course)
   - **percentile** – return given percentile
     - **select.percentile** defined from 0.0 to 1.0 (required)
     - **select.default** to replace null in the event there is no data
+  - **median** – return median (percentile = 50%)
   - **middle** - return middle percentile, a range min, max that ignores total and bottom (1-middle)/2 parts
     - **select.percentile** defined from 0.0 to 1.0 (required)
     - **select.default** to replace null in the event there is no data
@@ -170,6 +172,7 @@ ES.  ES only supports (count, sum, mean, variance).
     - **select.sort** - optional, to return the array sorted
   - **union** - return an array of unique values.  In the case of javascript, uniquness is defined as the string the object can be coorced to (```""+a == ""+b```).
 
+All aggregates ignore the null values; If all values are null, it is the same as having no data.
 
 
 where
