@@ -3,19 +3,21 @@
 SQL Shortcomings
 ================
 
-Here is a unordered list of the anti-patterns I see when dealing with SQL.  It is a personal note to myself, but I hope to expand it to explain the benefits of Qb queries. solutions
+Here is a unordered list of the anti-patterns I see when dealing with SQL.
+It is a personal note to myself, but I hope to expand it to explain the
+benefits of Qb queries. solutions
 
-This document serves to provide motvation for a query language beyond standard SQL.
+This document serves to provide motivation for a query language beyond standard
+SQL.
 
 
 Meta Programming
 ----------------
 
 Qb is a query language optimized specifically for hierarchical databases, nested
-JSON, and data warehouses.  A major feature of a Qb is it's JSON; and capable
-of operating on itself.  Many of the SQL shortcomings are a result of SQL not
+JSON, and data warehouses.  A deliberate feature of a Qb is it's JSON; so can be
+easily manipulated by code.  Many of the SQL's shortcomings are a result of SQL not
 having no macros.
-
 
 
 ###Splitting credit and debit
@@ -31,7 +33,7 @@ columns, like in accounting:
         transactions
 
 
-Qb can (re)use domain definitions to abstract-away the query complexitities:
+Qb can (re)use domain definitions to abstract-away the query complexities:
 
     money = {
         "name":"money",

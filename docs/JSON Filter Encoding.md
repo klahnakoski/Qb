@@ -20,7 +20,7 @@ a variable number of operands, which makes infix clumsy.
 
 Even if I believe infix should not be used, there is still benefit
 to reusing existing JSON-encoded operations found in other applications
-But, it seems little thought was put into the serialization:
+But, it seems no planning was put into the existing serializations:
 
 * MongoDB uses a combination of [infix notation](http://docs.mongodb.org/manual/reference/operator/query/gt/#op._S_gt),
 [prefix notation](http://docs.mongodb.org/manual/reference/operator/query/and/#op._S_and),

@@ -2,14 +2,22 @@
 Dimension Definitions
 ---------------------
 
-To simplify query writing, we borrow from the Business Intelligence software field and define a type hierarchy over the various fields and measures found in the cube.  Beyond query simplification, we also get minor ETL, a central schema definition, improved formatting, and organization.
+To simplify query writing, we borrow from the [Business Intelligence](http://en.wikipedia.org/wiki/Business_intelligence)
+field and define a type hierarchy over the various fields and measures found
+in the cube.  Beyond query simplification, we also get minor ETL, a central
+schema definition, improved formatting, and organization.
 
-A dimension can consists of child edges or child partitions.  Child edges are allowed to overlap each other's domains, and represent orthogonal ways to cut the same data.  Child partitions divide the dimension into mutually exclusive parts.  A well-behaved partition will cover the dimension's domain, ill-behaved partitions are "compiled" to be well-behaved so nothing is missed.
+A dimension can consists of child edges or child partitions.  Child edges are
+allowed to overlap each others domains, and represent orthogonal ways to cut
+the same data.  Child partitions divide the dimension into mutually exclusive
+parts.  A well-behaved partition will cover the dimension's domain,
+ill-behaved partitions are "compiled" to be well-behaved so nothing is missed.
 
-Dimensions are similar to domain clauses in Qb queries, with additional attributes to help apply that domain over many different queries.
+Dimensions are similar to domain clauses in Qb queries, with additional
+attributes to help apply that domain over many different queries.
 
   - **name** - humane words to describe the child dimension
-  - **field** - full path name of a field (eg ```"field":"test_build.branch"```) in the json record.  This will be used as the value in the query's edge.  You may also provide an array of fields (eg ```"field":["test_machine.os", "test_machine.osversion"]```) which will define a unique tuple for each domain part (see Hierarical Partitions, below).
+  - **field** - full path name of a field (eg ```"field":"test_build.branch"```) in the json record.  This will be used as the value in the query's edge.  You may also provide an array of fields (eg ```"field":["test_machine.os", "test_machine.osversion"]```) which will define a unique tuple for each domain part (see Hierarchical Partitions, below).
   - **value** - function to convert a part object into a humane string for final presentation.  **Default:** ```function(v){return v.name;}```
   - **format** - convenience attribute instead of using the value function to convert a part to a string.  This will look at the type of domain, and use the default formatting function for that type.
   - **type** - type of domain ("set", "time", "duration", "numeric", "count", "boolean")
@@ -20,14 +28,19 @@ Dimensions are similar to domain clauses in Qb queries, with additional attribut
   - **edges** - the child edges, with further dimension attributes
   - **default** - suggested limits for algebraic dimensions ( min, max, interval)
   - **partitions** - he child partitions, which can be further partitioned if required
+  - **requiredFields** - (optional)
 
 
 Hierarchical Partitions
 -----------------------
 
-Some properties domain values are functionally dependent on another.  You can have the field attribute be a list of property names, in dependency order.  This will make a hierarchy of partiitons for you,  while merging the two properties in to the effective one that they are.
+Some properties domain values are functionally dependent on another.  You can
+have the field attribute be a list of property names, in dependency order.
+This will make a hierarchy of partitions for you,  while merging the two
+properties in to the effective one that they are.
 
-Example:  Perfy test results have multiple benchmarks, each with a suite of tests.  Here is a simplified example of one test result
+Example:  Perfy test results have multiple benchmarks, each with a suite of
+tests.  Here is a simplified example of one test result
 
     {
         "info":{
@@ -37,7 +50,10 @@ Example:  Perfy test results have multiple benchmarks, each with a suite of test
         "score":200
     }
 
-The ```Box2D``` test can not be found in the other benchmarks, so is effectively one part of ```octane```.  The ```test``` property is a child of the ```benchmark``` property, and we declare it as such in the dimension definition:
+The ```Box2D``` test can not be found in the other benchmarks, so is
+effectively one part of ```octane```.  The ```test``` property is a child of
+the ```benchmark``` property, and we declare it as such in the dimension
+definition:
 
     {
         "name":"Benchmark",
@@ -45,7 +61,8 @@ The ```Box2D``` test can not be found in the other benchmarks, so is effectively
         "field":["info.benchmark", "info.test"]
     }
 
-If we were to organize the data to properly reflect the hierarchal nature, we could have used
+If we were to organize the data to reflect the hierarchical nature,
+we could have used
 
     {
         "octane":{
@@ -55,4 +72,6 @@ If we were to organize the data to properly reflect the hierarchal nature, we co
         }
     }
 
-But this deeper structure would probably require more ETL, it looses the name of the properties ("benchmark" and "test"), and will require a more complicated dimension definition (which is not even supported yet).
+But this deeper structure would probably require more ETL, it looses the name
+of the properties ("benchmark" and "test"), and will require a more
+complicated dimension definition (which is not even supported yet).
