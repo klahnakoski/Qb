@@ -266,7 +266,7 @@ GUI = {};
 				} else if (jQuery.isArray(v)) {
 					if (v.length > 0) simplestate[k] = v.join(",");
 				} else if (p && p.type == "json") {
-					v = CNV.Object2JSON(v);
+					v = convert.value2json(v);
 					v = v.escape(GUI.urlMap);
 					simplestate[k] = v;
 				} else if (typeof(v) == "string" || aMath.isNumeric(k)) {
@@ -308,7 +308,7 @@ GUI = {};
 				} else if (p && p.type == "json") {
 					try {
 						v = v.escape(Map.inverse(GUI.urlMap));
-						GUI.state[k] = CNV.JSON2Object(v);
+						GUI.state[k] = convert.json2value(v);
 					} catch (e) {
 						Log.error("Malformed JSON: " + v);
 					}//try
@@ -494,7 +494,7 @@ GUI = {};
 			GUI.parameters.forEach(function (param) {
 
 				if (param.type == "json") {
-					$("#" + param.id).val(CNV.Object2JSON(GUI.state[param.id]));
+					$("#" + param.id).val(convert.value2json(GUI.state[param.id]));
 				} else if (param.type == "boolean") {
 					$("#" + param.id).prop("checked", GUI.state[param.id]);
 				} else if (param.type == "datetime") {
@@ -511,7 +511,7 @@ GUI = {};
 		GUI.Parameter2State = function () {
 			GUI.parameters.forEach(function (param) {
 				if (param.type == "json") {
-					GUI.state[param.id] = CNV.JSON2Object($("#" + param.id).val());
+					GUI.state[param.id] = convert.json2value($("#" + param.id).val());
 				} else if (param.type == "boolean") {
 					GUI.state[param.id] = $("#" + param.id).prop("checked");
 				} else {
