@@ -242,7 +242,8 @@ ESQuery.INDEXES = Settings.indexes;
 		}//endif
 
 		if (pathLength <= 2) {//EG http://host/indexname/typename/_mapping
-			if (cluster_info.version.number.startsWith("0.9")) {
+			if (!cluster_info || cluster_info.version.number.startsWith("0.9")) {
+				//cluster_info==null MUST ASSUME THIS IS THE esFrontLine (IN FRONT OF 0.9x)
 				var types = Object.keys(schema);
 				if (types.length == 1) {
 					schema = schema[types[0]];
