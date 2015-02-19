@@ -588,22 +588,27 @@ Qb.Cube2List=function(query, options){
 	options.useLabels=nvl(options.useLabels, false);
 
 	//PRECOMPUTE THE EDGES
-	var edges = query.edges;
+	var edges = Array.newInstance(query.edges);
 	var domains = edges.select("domain");
 	var endFunction=domains.select("end");
 	if (options.useStruct){
-		endFunction=query.edges.map(function(e){ return function(v){return v;};});
+		endFunction=edges.map(function(e){ return function(v){return v;};});
 	}else if (options.useLabels){
 		endFunction=domains.select("label");
 	}//endif
 	var parts=domains.select("partitions");
-	var names=query.edges.select("name");
+	var names=edges.select("name");
 
 	if (names.length==0){
 		if (query.select instanceof Array){
 			return [query.cube];
 		}else{
-			return [Map.newInstance(query.select.name, query.cube)];
+			if (query.meta){ //ActiveData INDICATOR
+				return [query.cube];
+			}else{
+				//Javascript ESQuery FORMAT
+				return [Map.newInstance(query.select.name, query.cube)];
+			}//endif
 		}//endif
 	}//endif
 

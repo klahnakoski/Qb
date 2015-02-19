@@ -72,7 +72,7 @@ importScript("../util/convert.js");
 
 	Exception.prototype.contains=function(type){
 		if (this==type) return true;
-		if (this.message==type) return true;
+		if (this.message.indexOf(type)>=0) return true;
 
 		if (this.cause===undefined){
 			return false;

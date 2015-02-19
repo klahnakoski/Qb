@@ -18,6 +18,9 @@ importScript("../rest/ElasticSearch.js");
 importScript("../rest/Rest.js");
 
 
+
+
+
 var ESQuery = function(query){
 	this.query = query;
 	this.compile();
@@ -26,6 +29,7 @@ var ESQuery = function(query){
 ESQuery.TrueFilter = {"match_all": {}};
 ESQuery.DEBUG = false;
 ESQuery.INDEXES = Settings.indexes;
+ESQuery.NOT_SUPPORTED = "From clause not supported \n{{from}}";
 
 
 (function(){
@@ -124,15 +128,20 @@ ESQuery.INDEXES = Settings.indexes;
 		var indexName = null;
 		if (typeof(query) == 'string') {
 			indexName = query;
-		} else {//https://metrics.mozilla.com/bugzilla-analysis/es/images/Spreadsheet.png
-			indexName = splitField(query.from)[0];
+		} else {
+			if (typeof(query.from)=='string'){
+				indexName = splitField(query.from)[0];
+			}else{
+				//COMPLEX from CLAUSE, SHUNT TO ActiveData
+				Log.error(ESQuery.NOT_SUPPORTED, {"from":query.from})
+			}//endif
 		}//endif
 
 		var indexInfo = ESQuery.INDEXES[indexName];
 
 		if (indexInfo===undefined){
-			//DIVERT TO ACTIVE DATA SERVICE
-			Log.error("No index with name {{name}} can be found", {"name":indexName})
+			//DIVERT TO ActiveData SERVICE
+			Log.error(ESQuery.NOT_SUPPORTED, {"from":query.from})
 		}//endif
 
 		//WE MANAGE ALL THE REQUESTS FOR THE SAME SCHEMA, DELAYING THEM IF THEY COME IN TOO FAST
