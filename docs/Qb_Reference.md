@@ -21,8 +21,13 @@ ETL bugs.
 Design
 ------
 
-Generally, Qb queries are meant to look much like a JSON Abstract Syntax Tree (AST) of SQL.  There are differences when
-it comes to ```group by``` and joins, but that is the influence of MDX.
+Generally, Qb queries are JSON structures meant to mimic the Abstract Syntax
+Tree (AST) of SQL for the same.  It is hoped the similarity with SQL will
+make it accessible to a wider audience.   The JSON nature is simply to avoid
+making another language parser.
+
+There are differences when it comes to ```group by``` and joins, but that
+is the influence of MDX.
 
 Intended Audience
 -----------------
@@ -34,42 +39,50 @@ knows how to write Qb queries.  For a tutorial, start [here](BZ_Tutorial.md)
 Nomenclature
 ------------
 
+The nomenclature closely follows that used in business intellegnce.
+
   - **cube** – a set of values in an n-space.  A good example for n=2 is a spreadsheet.
   - **edge** – each edge defines a dimension of the cube and the topology of that dimension.  Our spreadsheet example has two dimensions: Rows and Columns.
   - **domain** – every edge has a domain which defines it’s valid values.  The spreadsheet's rows have natual numbers as thier domain (1, 2, 3, ...) and the columns are in the alphabet domain (A, B, C, ....)
   - **partition** – every domain can be partitioned in multiple ways.  Each partition is an ordered array of mutually exclusive parts that cover the domain.  In the case of the spreadsheet, you may want to group many rows, or many columns together and treat them all the same.  Maybe columns are retail outlets, grouped by region, and rows are customers, group by demographic
   - **part** – one part of a partition.  Eg "north-east region", or "under 20"
   - **part objects** - Partitions are often an array of objects (with a name, value, and other attributes).  These objects usually represent the values along the axis of a chart.  Eg {"name": "NorthEast", "director":"Ann"} {"name":"Under 20", "display color":"blue"}
-  - **cell** – a unique tuple representing one part from each edge:  Simply an array of part objects.
-  - **value** -
-  - **object** -
-  - **attribute** -
+  - **coordinates** - a unique tuple representing one part from each edge: Simply an array of part objects.
+  - **cell** – the conceptual space located at a set of coordinate
+  - **fact** - the value/number/object in the cell at given coorinates
+  - **attribute** - any one coordinate, which is a *part*
   - **record/row** – anaglous to a database row.  In the case of a cube, there is one record for every cell: which is an object with having attributes
-  - **column** – anagolous to a database column: a common attribute definition found on all objects in a cube
+  - **column** – anagolous to a database column, a dimension or an edges
 
 ORDER OF OPERATIONS
 -------------------
-Each of the clauses are executed in a particular order, irrespective of their order in the JSON structure.   This is most limiting in the case of the where clause.  Use sub queries to get around this limitation for now.
+Each of the clauses are executed in a particular order, irrespective of their
+order in the JSON structure.   This is most limiting in the case of the
+where clause.  Use sub queries to get around this limitation for now.
 
   - **from** – the array, or list, to operate on.  Can also be the results of a query, or an in-lined subquery.
   - **edges** – definition of the edge names and their domains
   - **where** – early in the processing to limit rows and aggregation: has access to domain names
   - **select** – additional aggregate columns added
   - **window** – window columns added
+  - **having** - advanced filtering
   - **sort** – run at end, but only if output to a list.
   - **isLean** - used by ElasticSearch to use _source on all fields
 
 QUERY STRUCTURE
 ---------------
 
-Queries are in a JSON structure which can be interpreted by ESQuery.js (for ES requests, limited by ES’s functionality)
-and by Qb.js (for local processing with Javascript).
+Queries are in a JSON structure which can be interpreted by ESQuery.js (for
+ES requests, limited by ES’s functionality) and by Qb.js (for local
+processing with Javascript).
 
 from
 ----
-The from clause states the table, index, or relation that is being processed by the query.  In Javascript this can be
-an array of objects, a cube, or another Qb query.  In the case of ES, this is the name of the index being scanned.
-Nested ES documents can be pulled by using a dots (.) as a path separator to nested property.
+The from clause states the table, index, or relation that is being processed
+by the query.  In Javascript this can be an array of objects, a cube, or
+another Qb query.  In the case of ES, this is the name of the index being
+scanned. Nested ES documents can be pulled by using a dots (.) as a path
+separator to nested property.
 
 Example: Patches are pulled from the BZ
 
@@ -155,6 +168,7 @@ ES.  ES only supports (count, sum, mean, variance).
   - **count** – count number of values
   - **sum** – mathematical summation of values
   - **average** – mathematical average of values
+  - **geomean** - geometric mean of values
   - **minimum** – return minimum value observed
   - **maximum** – return maximum value observed
   - **first** - return first value observed (assuming ordered ```from``` clause)
@@ -169,6 +183,8 @@ ES.  ES only supports (count, sum, mean, variance).
   - **join** – concatenate all values to a single string
     - **select.separator** to put between each of the joined values
   - **array** - return an array of values (which can have duplicates)
+    - **select.sort** - optional, to return the array sorted
+  - **list** - return an list of values (alternate name for array aggregate)
     - **select.sort** - optional, to return the array sorted
   - **union** - return an array of unique values.  In the case of javascript, uniquness is defined as the string the object can be coorced to (```""+a == ""+b```).
 
@@ -263,7 +279,7 @@ Every edge must be limited to one of a few basic domain types.  Which further de
 window
 ------
 
-The window clause defines a sequence of window functions to be applied to the result set.  Each window function defines an additional attribute, and does not affect the  number of rows returned.  For each window, the data is grouped, sorted and assigned a ```rownum``` attribute that can be used to calculate the attribute value.
+The `window` clause defines a sequence of window functions to be applied to the result set.  Each window function defines an additional attribute, and does not affect the  number of rows returned.  For each window, the data is grouped, sorted and assigned a ```rownum``` attribute that can be used to calculate the attribute value.
 
   - **name** – name given to resulting attribute
   - **value** – can be a function (or a string containing javascript code) to determine the attribute value.  The functions is passed three special variables:
@@ -280,6 +296,14 @@ The window clause defines a sequence of window functions to be applied to the re
 
 **Please note: The javascript Qb library uses "analytic" instead of "window".**
 
+having
+------
+
+The `having` clause is a filter that uses aggregates and partitions to determine inclusion in the resultcube.
+
+  - **edges** – an array of column names used to determine how the rows are partitioned
+  - **sort** – a single attribute name, or array of attribute names, used to declare the rank of every row in the group
+  - **aggregate** - an aggregate function used to determine which row is selected
 
 Pre-Defined Dimensions
 ----------------------

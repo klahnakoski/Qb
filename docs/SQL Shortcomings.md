@@ -80,6 +80,96 @@ Partitioning records along more dimensions gets more painful with SQL:
     }
 
 
+Filter by Rank
+--------------
+
+
+Here is a common SQL pattern:
+
+```sql
+    SELECT
+      *
+    FROM
+      alerts.alerts a
+    LEFT JOIN
+      (
+        SELECT
+          branch,
+          MAX(last_updated) max_date
+        FROM
+          alerts.alerts
+        WHERE
+          revision like '%c1f6%'
+        GROUP BY
+          branch
+      ) m ON m.branch = a.branch AND m.max_date=a.last_updated
+    WHERE
+      revision like '%c1f6%'
+    ;
+```
+
+The high level objective of this code is to pick the latest record from each
+branch.  But, this code is wrong; possibly returning more than one record per
+category.  The example is also very simple, and ranking algorithms can get
+complicated.  Given we got this one wrong, we have little chance of writing
+complicated ranking algorithms correctly.
+
+Window functions almost do what we want:  They can categorize using edges, and
+rank using sort, but they do not change trhe number of rows returned.
+Generally, we what a clause that can pick the "best" record according to some
+ranking algorithm, by category.
+
+
+I suggest a new `having` clause, as per SQL, but with additional parameters to
+specify grouping and more-detailed ordering:
+
+```javacript
+    {
+        "from":"alerts",
+        "where":{"regexp":{"revision":".*c1f6.*"}},
+        "having":{"edges":["branch"], "sort":["last_updated"], "rank":"last"}
+    }
+```
+
+If you really wanted dups, we can use "maximum"
+
+```javacript
+    {
+        "from":"alerts",
+        "where":{"regexp":{"revision":".*c1f6.*"}},
+        "having":{"edges":["branch"], "sort":["last_updated"], "rank":"maximum"}
+    }
+```
+
+Here is an example of how simple we can go:
+
+<html><table><tr><td>
+<pre>
+    SELECT
+      *
+    FROM
+      alerts a
+    LEFT JOIN
+      (
+        SELECT
+          MAX(last_updated) max_date
+        FROM
+          alerts
+        WHERE
+          revision like '%c1f6%'
+      ) m ON m.max_date=a.last_updated
+    WHERE
+      revision like '%c1f6%'
+    ;
+</pre></td><td><pre>
+{
+    "from":"alerts",
+    "where":{"regexp":{"revision":".*c1f6.*"}},
+    "having":{"sort":["last_updated"], "rank":"maximum"}
+}
+</pre>
+</td></tr></table>
+
 
 Reporting multiple dimensions as columns
 
@@ -153,8 +243,12 @@ Report by timezone, using num open, num closed, and net
     sum(CASE WHEN t.type='Load-Bank Transfer' THEN 1 ELSE 0 END)/91*30 numBankTransfer,
     sum(CASE WHEN t.type='Corporate Load' THEN 1 ELSE 0 END)/91*30 numCorporate
 
-The benefit of partitions is that they are gaurenteed to not overlap.  In this case, the <code>Other</code> part is left with all remaining transaction types.  There is no double counting, and no missed values.
 
+The benefit of partitions is that they are guaranteed to not overlap.  In this
+case, the `Other` part is left with all remaining transaction types.  There is
+no double counting, and no missed values.
+
+```javascript
     payType = {
         "name":"payType",
         "type":"set",
@@ -168,15 +262,16 @@ The benefit of partitions is that they are gaurenteed to not overlap.  In this c
     }
 
     query = {
-    "from":transactions
-    "select":{"name":"num", "aggregate":"count"}
-    "edges":[
-        {"domain":payType}
-    ]
+        "from":transactions
+        "select":{"name":"num", "aggregate":"count"}
+        "edges":[
+            {"domain":payType}
+        ]
     }
+```
 
-
-If data can be split according to independent criterion, then you avoid the inevitable power-set that results.
+If data can be split according to independent criterion, then you avoid the
+inevitable power-set that results.
 
     SELECT
         count(1) `count`
@@ -196,7 +291,7 @@ If data can be split according to independent criterion, then you avoid the inev
 
 
 
-    statusDomain = {
+    cardStatusDomain = {
         "name":"category",
         "type":"set",
         "partitions":[
@@ -223,13 +318,14 @@ If data can be split according to independent criterion, then you avoid the inev
     "from":accounts.
     "select":{"name":"count", "aggregate":"count"}
     "edges":[
-        {"name":"status", "domain":statusDomain},
+        {"name":"status", "domain":cardStatusDomain},
         {"name":"auto", "domain":autoDomain}
     ]
     }
 
 
-The using partition order to define the mutually exclusive sets reduces total number of rules written, but the order of presentation may be different
+The using partition order to define the mutually exclusive sets reduces total
+number of rules written, but the order of presentation may be different
 
     ORDER BY
         CASE
@@ -253,9 +349,52 @@ And then same logic to show name
         ELSE 'is Closed'
         END status,
 
+    status
+
+
+    accountStatusDomain = {
+        "name":"status",
+        "type":"set",
+        "partitions":[
+            {"name":"Active", "where":{"term":{"is_active": 1}}},
+            {"name":"New", "where":{"term":{"is_new": 1}}},
+            {"name":"Used", "where":{"term":{"is_used": 1}}},
+            {
+                "name":"Neglected",
+                "where":{"and":[
+                    {"or":[
+                        {"term":{"is_open": 1}},
+                        {"term":{"accountstatus":"OPEN"}}
+                    ]},
+                    {"range":{"dateopened":{"lte":"{{mindate}}
+            },
+            {
+                "name":"Open",
+                "where": {"or":[
+                    {"term":{"is_open": 1}},
+                    {"term":{"accountstatus":"OPEN"}}
+                ]}
+            },
+            {"name":"Closed"}
+        ]
+    }
+
+    {
+        "from":accounts,
+        "select":[
+            {"value":"balance", "aggregate":"average"},
+            {"name":"count", "aggregate":"count"}
+        ],
+        "edges":[{"domain":accountStatusDomain}]
+    }
+
+
+
 ### Summarize Everything
 
-You would think a database constraint would avoid certain imposibilities, but you would be wrong.  For possibly legal reasons the foreign key can be missing:
+You would think a database constraint would avoid certain impossibilities, but
+you would be wrong:  There are legal reasons the foreign key can be
+missing:
 
     SELECT
         a.name fullname,

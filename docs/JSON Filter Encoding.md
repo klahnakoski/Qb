@@ -34,61 +34,19 @@ leaky abstraction.
 Since there is no standard, we will declare yet-another JSON filter format:  It uses prefix
 ordering; and is consistent with functional notation.
 
-<table><tr>
-<td><b>Operation</b></td>
-<td><b>Qb Query</b></td>
-<td><b>MongoDB</b></td>
-<td><b>ElasticSearch</b></td>
-</tr><tr>
-<td>Equality</td>
-<td><code>{"eq": {field: value}}</code></td>
-<td><code>{field: value}</code></td>
-<td><code>{"term": {field: value}}</code></td>
-</tr><tr>
-<td>Inequality<br><code>gt, gte, ne, lte, lt</code></td>
-<td><code>{"gt": {field: value}}</code></td>
-<td><code>{field: {"$gt": value} }</code></td>
-<td><code>{"range": {field: {"gt":value}}}</code></td>
-</tr><tr>
-<td>Logical Operators<br><code>and, or</code></td>
-<td><code>{"and": [a, b, c, ...]}</code></td>
-<td><code>{"$and": [a, b, c, ...]}</code></td>
-<td><code>{"and": [a, b, c, ...]}</code></td>
-</tr><tr>
-<td>Match All</td>
-<td><code>true</code></td>
-<td><code>{}</code></td>
-<td><code>{"match_all": {}}</code></td>
-</tr><tr>
-<td>Exists</td>
-<td><code>{"exists": field}</code><br>(null values do not exist)</td>
-<td><code>{field: {"$exists": true}}<br>(null values exist)</code></td>
-<td><code>{"exists": {"field": field}}</code></td>
-</tr><tr>
-<td>Missing</td>
-<td><code>{"missing": field}</code><br>(null values are missing)</td>
-<td><code>{field: {"$exists": false}}</code><br>(values are not missing)</td>
-<td><code>{"missing": {"field": field}}</code></td>
-</tr><tr>
-<td>Match one of many</td>
-<td><code>{"in": {field:[a, b, c, ...]}</code></td>
-<td><code>{field {"$in":[a, b, c, ...]}</code></td>
-<td><code>{"terms": {field: [a, b, c, ...]}</code></td>
-</tr><tr>
-<td>Prefix</td>
-<td><code>{"prefix": {field: prefix}}</code></td>
-<td><code>{field: {"$regex": /^prefix\.*/}}</code></td>
-<td><code>{"prefix": {field: prefix}}</code></td>
-</tr><tr>
-<td>Regular Expression</td>
-<td><code>{"regex": {"field":regex}</code></td>
-<td><code>{field: {"$regex": regex}}</code></td>
-<td><code>{"regexp":{field: regex}}</code></td>
-</tr><tr>
-<td>Script</td>
-<td><code>{"script": javascript}</code></td>
-<td><code>{"$where": javascript}</code></td>
-<td><code>{"script": {"script": mvel_script}}</code></td>
-</tr></table>
+| Operation                     | Qb Query                       | MongoDB                           | ElasticSearch                       |
+|:------------------------------|:-------------------------------|:----------------------------------|:------------------------------------|
+|Equality                       |`{"eq": {field: value}}`        |`{field: value}`                   |`{"term": {field: value}}`           |
+|Inequality `gt, gte, ne, lte, lt`|`{"gt": {field: value}}`      |`{field: {"$gt": value} }`         |`{"range": {field: {"gt":value}}}`   |
+|Logical Operators `and, or`    |`{"and": [a, b, c, ...]}`       |`{"$and": [a, b, c, ...]}`         |`{"and": [a, b, c, ...]}`            |
+|Match All                      |`true`                          |`{}`                               |`{"match_all": {}}`                  |
+|Exists                         |`{"exists": field}`             |`{field: {"$exists": true}}        |`{"exists": {"field": field}}`       |
+|Missing                        |`{"missing": field}`            |`{field: {"$exists": false}}`      |`{"missing": {"field": field}}`      |
+|Match one of many              |`{"in": {field:[a, b, c, ...]}` |`{field {"$in":[a, b, c, ...]}`    |`{"terms": {field: [a, b, c, ...]}`  |
+|Prefix                         |`{"prefix": {field: prefix}}`   |`{field: {"$regex": /^prefix\.*/}}`|`{"prefix": {field: prefix}}`        |
+|Regular Expression             |`{"regex": {"field":regex}`     |`{field: {"$regex": regex}}`       |`{"regexp":{field: regex}}`          |
+|Script                         |`{"script": javascript}`        |`{"$where": javascript}`           |`{"script": {"script": mvel_script}}`|
 
-
+**Special note on nulls**
+  * Qb - null values do not `exists` and are considered `missing`
+  * MongoDB and ES - null values `exist` and are not `missing`
