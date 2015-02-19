@@ -131,6 +131,7 @@ ESQuery.INDEXES = Settings.indexes;
 		var indexInfo = ESQuery.INDEXES[indexName];
 
 		if (indexInfo===undefined){
+			//DIVERT TO ACTIVE DATA SERVICE
 			Log.error("No index with name {{name}} can be found", {"name":indexName})
 		}//endif
 
