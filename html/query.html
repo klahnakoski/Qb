@@ -144,7 +144,7 @@ var executeCube = function(event){
 		ESQueryRunner(query, function(data){
 			if (data.cube !== undefined) {
 				Thread.run(function*(){
-					data.list = yield(Qb.Cube2List(data));
+					data.list = Qb.Cube2List(data);
 					$("#result").html("<div>" + data.list.length + " rows (up to 100 shown)</div>" + convert.List2HTMLTable(data.list, {"limit": 3000}));
 				});
 			} else if (data.list !== undefined) {
