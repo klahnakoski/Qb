@@ -9,7 +9,7 @@ ElasticSearch={};
 
 //ElasticSearch.pushURL="http://elasticsearch-private.bugs.scl3.mozilla.com:9200";
 //ElasticSearch.pushURL="http://elasticsearch7.metrics.scl3.mozilla.com:9200";
-ElasticSearch.pushURL="http://localhost:9200";
+ElasticSearch.pushURL="http://klahnakoski-es.corp.tor1.mozilla.com:9200";
 
 
 ElasticSearch.search=function*(index, esquery){
@@ -27,9 +27,9 @@ ElasticSearch.search=function*(index, esquery){
 	yield (output);
 };
 
-ElasticSearch.setRefreshInterval=function*(indexName, rate){
+ElasticSearch.setRefreshInterval=function*(destination, rate){
 	var data=yield (Rest.put({
-		"url": ElasticSearch.pushURL+"/"+indexName+"/_settings",
+		"url": joinPath(destination.host, destination.path, "_settings"),
 		"data":{"index":{"refresh_interval":"1s"}}
 	}));
 	Log.note("Refresh Interval to "+rate+": "+CNV.Object2JSON(data));
@@ -38,10 +38,10 @@ ElasticSearch.setRefreshInterval=function*(indexName, rate){
 
 
 //EXPECTING THE DATA ARRAY TO ALREADY HAVE ODD ENTRIES STARTING WITH { "create":{ "_id" : ID } }
-ElasticSearch.bulkInsert=function*(indexName, typeName, dataArray){
+ElasticSearch.bulkInsert=function*(destination, dataArray){
 //	try{
 		yield (Rest.post({
-			"url":ElasticSearch.pushURL+"/"+indexName+"/"+typeName+"/_bulk",
+			"url":joinPath(destination.host, destination.path, "_bulk"),
 			"data":dataArray.join("\n")+"\n",
 			dataType: "text"
 		}));
@@ -49,7 +49,6 @@ ElasticSearch.bulkInsert=function*(indexName, typeName, dataArray){
 //		Log.warning("problem with _bulk", e)
 //	}//try
 };
-
 
 //ONLY BECAUSE I AM TOO LAZY TO ENHANCE THE ESQuery WITH MORE FACETS (A BATTERY OF FACETS PER SELECT COLUMN)
 //RETURN ALL BUGS THAT MATCH FILTER ALONG WITH THE TIME RANGE THEY MATCH
@@ -98,6 +97,39 @@ ElasticSearch.getMinMax=function*(esfilter){
 	yield u;
 };//method
 
+
+
+
+
+// RETURN min AND max FOR EACH BUG DURING WHICH IT WAS OPEN
+// ALSO GIVE CURRENT VALUES OF selects
+ElasticSearch.getOpenMinMax=function*(esfilter, timeDomain, selects){
+	var details = yield(ESQuery.run({
+		"from":"bugs",
+		"select":selects.union(["bug_id", "modified_ts", "expires_on", "bug_status"]),
+		"esfilter":{"and":[
+			{"range":{"expires_on":{"gte":timeDomain.min.getMilli()}}},
+			esfilter
+		]}
+	}));
+
+	var allSelects = selects.map(function(s){
+		return {"name":s, "value":'expires_on>Date.now().getMilli() ? '+s+' : null', "aggregate":"minimum"};  //aggregate===minimum due to es corruption
+	}).appendArray([
+		{"name":"min", "value":'["new", "assigned", "unconfirmed", "reopened"].contains(bug_status) ? modified_ts : null', "aggregate":"minimum"},
+		{"name":"max", "value":'["new", "assigned", "unconfirmed", "reopened"].contains(bug_status) ? expires_on  : null', "aggregate":"maximum"}
+	]);
+
+	var summary = yield(Q({
+		"from":details,
+		"select": allSelects,
+		"edges":[
+			"bug_id"
+		]
+	}));
+
+	yield summary;
+};//method
 
 
 ////////////////////////////////////////////////////////////////////////////////

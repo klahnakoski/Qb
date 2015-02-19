@@ -38,7 +38,7 @@ Qb.column.compile = function(resultColumn, sourceColumns, edges, useMVEL){  //us
 			if (!v.esfilter){
 				all_have_filters=false;
 			}else{
-				calc_val+="if ("+CNV.esFilter2Expression(v.esfilter)+") return "+CNV.Value2Quote(v.value)+";\nelse ";
+				calc_val+="if ("+CNV.esFilter2Expression(v.esfilter)+") return "+ CNV.Value2Quote(v[resultColumn.domain.key])+";\nelse ";
 			}//endif
 		});
 		calc_val+="return null;\n";
@@ -56,7 +56,8 @@ Qb.column.compile = function(resultColumn, sourceColumns, edges, useMVEL){  //us
 	}//endif
 
 	//COMPILE THE CALCULATION OF THE DESTINATION COLUMN USING THE SOURCE COLUMNS
-	var f = "resultColumn.calc=function(__source, __result){\n";
+	var f = "resultColumn.calc=function(__source, __result){\n" +
+		"try{\n";
 	for(var s = 0; s < sourceColumns.length; s++){
 		var columnName = sourceColumns[s].name;
 		//ONLY DEFINE VARS THAT ARE USED
@@ -83,10 +84,10 @@ Qb.column.compile = function(resultColumn, sourceColumns, edges, useMVEL){  //us
 	}//for
 
 	f +=
-		"var output;\n"+
-		"try{ " +
-			"	output=" + resultColumn.value + "; " +
-			"	if (output===undefined || aMath.isNaN(output)) Log.error(\"" + resultColumn.name + " returns \"+CNV.Value2Quote(output));\n"+
+			"   var output;\n"+
+
+			"	output = " + resultColumn.value + ";\n" +
+			"	if (output===undefined || (output!=null && aMath.isNaN(output))) Log.error(\"" + resultColumn.name + " returns \"+CNV.Value2Quote(output));\n"+
 			"	return output;\n" +
 			"}catch(e){\n" +
 			"	Log.error("+
@@ -112,13 +113,13 @@ Qb.where.compile = function(whereClause, sourceColumns, edges){
 	var whereMethod = null;
 
 
-	if (whereClause === undefined){
+	if (whereClause === undefined || whereClause==null){
 		eval("whereMethod=function(a, b){return true;}");
 		return whereMethod;
 	}//endif
 
 	if (!isString(whereClause)){
-		whereClause = CNV.esFilter2Expression(whereClause);
+		return CNV.esFilter2function(whereClause);
 	}//endif
 
 	var f = "whereMethod=function(__source, __result){\n";
@@ -133,8 +134,11 @@ Qb.where.compile = function(whereClause, sourceColumns, edges){
 		var columnName = edges[i].name;
 		var domainName = edges[i].domain.name;
 		//ONLY DEFINE VARS THAT ARE USED
-		if (whereClause.indexOf(domainName + ".") != -1){
+		if (whereClause.indexOf(domainName) != -1){
 			f += "var " + domainName + "=__result["+i+"];\n";
+		}//endif
+		if (whereClause.indexOf(columnName) != -1){
+			f += "var " + columnName + "=__result["+i+"];\n";
 		}//endif
 	}//for
 

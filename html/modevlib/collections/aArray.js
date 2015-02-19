@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-
+importScript("../util/aUtil.js");
 
 
 
@@ -40,15 +40,19 @@
 
 
 	Array.prototype.copy = function(){
-		return this.slice(0);
+		//http://jsperf.com/new-array-vs-splice-vs-slice/19
+		var b=[];
+		var i = this.length;
+		while(i--) { b[i] = this[i]; }
+		return b;
 	};//method
-
 
 
 	Array.prototype.forall=function(func){
 		for(var i=0;i<this.length;i++){
 			func(this[i], i, this);
 		}//for
+		return this;
 	};//method
 
 	Array.prototype.insert=function(index, value){
@@ -71,8 +75,10 @@
 	Array.prototype.select=function(attrName){
 		var output=[];
 		if (typeof(attrName)=="string"){
-			for(var i=0;i<this.length;i++) output.push(this[i][attrName]);
-		}else{
+			for(var i=0;i<this.length;i++)
+				output.push(this[i][attrName]);
+		}else if (attrName instanceof Array){
+			//SELECT MANY VALUES INTO NEW OBJECT
 			for(var i=0;i<this.length;i++){
 				var v=this[i];
 				var o={};
@@ -82,6 +88,10 @@
 				}//for
 				output.push(o);
 			}//for
+		}else{
+			//ASSUMING NUMERICAL INDEX
+			for(var i=0;i<this.length;i++)
+				output.push(this[i][attrName]);
 		}//endif
 		return output;
 	};//method
@@ -127,8 +137,6 @@
 		return output;
 	};//method
 
-
-
 	//RETURN A RANDOM SAMPLE OF VALUES
 	Array.prototype.sample=function(num){
 		if (this.length<num) return this;
@@ -143,17 +151,16 @@
 		return this;
 	};//method
 
-
-
-
-	Array.prototype.appendArray=function(arr){
-//		this.reverse();
+	function appendArray(arr){
 		for(var i=0;i<arr.length;i++){
 			this.push(arr[i]);
 		}//for
-//		this.reverse();
 		return this;
-	};//method
+	}//method
+	Array.prototype.appendArray=appendArray;
+	Array.prototype.appendList=appendArray;
+	Array.prototype.extend=appendArray;
+
 
 	if (DEBUG){
 		var temp=[0,1,2].appendArray([3,4,5]);
@@ -162,13 +169,17 @@
 	}//endif
 
 
-	Array.prototype.prepend=Array.prototype.unshift;
+	Array.prototype.prepend=function(v){
+		this.unshift(v);
+		return this;
+	};//method
 
 	Array.prototype.last=function(){
 		return this[this.length-1];
 	};//method
 
 	Array.prototype.first=function(){
+		if (this.length==0) return null;
 		return this[0];
 	};//method
 
@@ -237,14 +248,50 @@
 	};//method
 
 
-	//RETURN UNION OF UNIQUE VALUES (WORKS ON STRINGS ONLY)
-	Array.prototype.union = function(b){
-		var output={};
-		for(var i = this.length; i--;) output[this[i]]=1;
-		for(var j = b.length; j--;) output[b[j]]=1;
-		return Object.keys(output);
+	//RETURN UNION OF UNIQUE VALUES
+	//ASSUMES THAT THE COORCED STRING VALUE IS UNIQUE
+	//EXPECTING EACH ARGUMENT TO BE AN ARRAY THAT REPRESENTS A SET
+	Array.prototype.union = function(){
+		return Array.union.apply(undefined, [].appendArray(arguments).append(this));
 	};//method
 
+	//RETURN UNION OF UNIQUE VALUES
+	//ASSUMES THAT THE COORCED STRING VALUE IS UNIQUE
+	//EXPECTING ONE ARGUMENT, WHICH IS A LIST OF AN ARRAYS, EACH REPRESENTING A SET
+	Array.union = function union(){
+		var arrays = (arguments.length==1  && arguments[0] instanceof Array) ? arguments[0] : arguments;
+
+		var output={};
+		for (var j = arrays.length; j--;) {
+			var a = Array.newInstance(arrays[j]);
+			for (var i = a.length; i--;) {
+				var v = a[i];
+				output[v] = v;
+			}//for
+		}//for
+		return Map.getValues(output);
+	};
+
+
+	function AND(values){
+		for(var i=values.length;i--;){
+			var v=values[i];
+			if (v==false) return false;
+		}//for
+		return true;
+	}
+	Array.AND=AND;
+
+
+	Array.extend=function extend(){
+		var arrays = (arguments.length==1  && arguments[0] instanceof Array) ? arguments[0] : arguments;
+		var output=[];
+		for(var i=0;i<arrays.length;i++){
+			var a = Array.newInstance(arrays[i]);
+			output.appendArray(a);
+		}//for
+		return output;
+	};
 
 
 	Array.prototype.subtract=function(b){

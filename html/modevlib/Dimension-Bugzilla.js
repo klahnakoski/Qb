@@ -10,7 +10,7 @@ if (!Mozilla) var Mozilla={"name":"Mozilla", "edges":[]};
 Dimension.addEdges(true,  Mozilla, [
 	{"name":"CurrentRecords", esfilter:{"range":{"expires_on":{"gt" :Date.now().addDay(1).getMilli()}}}},
 
-	{"name":"BugStatus", "index":"bugs", "partitions":[
+	{"name":"BugStatus", "index":"bugs", "isFacet":true, "partitions":[
 		{"name":"Open", "partitions":[
 			{"name":"New", "esfilter":{"term":{"bug_status":"new"}}},
 			{"name":"Assigned", "esfilter":{"term":{"bug_status":"assigned"}}},
@@ -365,8 +365,7 @@ Dimension.addEdges(true,  Mozilla, [
 			}
 
 
-//				{"name": "Other", "esfilter":
-//					{"terms":{"product":["firefox", "thunderbird", "firefox for android", "firefox for metro", "boot2gecko", "core", "nspr", "jss", "nss", "toolkit"]}}
+//			{"name" : "Other", "esfilter" : {"terms" : {"product" : ["firefox", "thunderbird", "firefox for android", "firefox for metro", "boot2gecko", "core", "nspr", "jss", "nss", "toolkit"]}}
 //				}
 		]}
 	]}

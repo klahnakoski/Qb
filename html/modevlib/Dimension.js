@@ -13,6 +13,7 @@ var DEFAULT_QUERY_LIMIT = 20;
 
 Dimension.prototype = {
 	"getDomain": function (param) {
+		//param.fullFilter  SET TO true TO HAVE FULL FILTER IN PARTITIONS
 		//param.depth IS MEANT TO REACH INTO SUB-PARTITIONS
 		if (param === undefined) {
 			param = {
@@ -23,37 +24,36 @@ Dimension.prototype = {
 		param.depth = nvl(param.depth, 0);
 		param.separator = nvl(param.separator, ".");
 
+		var useFullFilter = nvl(param.fullFilter, false);
+
 		var self = this;
 		var partitions = null;
 
 		if (!this.partitions && this.edges) {
 			//USE EACH EDGE AS A PARTITION, BUT isFacet==true SO IT ALLOWS THE OVERLAP
 			partitions = this.edges.map(function (v, i) {
-				if (i >= nvl(self.limit, DEFAULT_QUERY_LIMIT)) return undefined;
+				if (i >= nvl(self.limit, DEFAULT_QUERY_LIMIT))
+					return undefined;
 				if (v.esfilter === undefined) return;
-				return {
-					"name": v.name,
-					"value": v.name,
-					"esfilter": v.esfilter,
-					"fullFilter": v.fullFilter,
-					"dateMarks": v.dateMarks,
-					"style": Map.clone(v.style),
-					"weight": v.weight //YO! WHAT DO WE *NOT* COPY?
-				};
+				v.style = nvl(v.style, {});
+				var temp = v.parent;
+				v.parent=undefined;
+				var output = Map.clone(v);
+				v.parent=temp;
+				output.esfilter = useFullFilter ? v.fullFilter : v.esfilter;
+				return output;
 			});
 			self.isFacet = true;
 		} else if (param.depth == 0) {
 			partitions = this.partitions.map(function (v, i) {
 				if (i >= nvl(self.limit, DEFAULT_QUERY_LIMIT)) return undefined;
-				return {
-					"name": v.name,
-					"value": v.value,
-					"esfilter": v.esfilter,
-					"fullFilter": v.fullFilter,
-					"dateMarks": v.dateMarks,
-					"style": Map.clone(v.style),
-					"weight": v.weight   //YO!  WHAT DO WE *NOT* COPY?
-				};
+				v.style = nvl(v.style, {});
+				var temp = v.parent;
+				v.parent=undefined;
+				var output = Map.clone(v);
+				v.parent=temp;
+				output.esfilter = useFullFilter ? v.fullFilter : v.esfilter;
+				return output;
 			})
 		} else if (param.depth == 1) {
 			partitions = [];
@@ -62,16 +62,15 @@ Dimension.prototype = {
 				if (i >= nvl(self.limit, DEFAULT_QUERY_LIMIT)) return undefined;
 				rownum++;
 				part.partitions.forall(function (subpart, j) {
-					partitions.append({
-						"name": [subpart.name, subpart.parent.name].join(param.separator),
-						"value": subpart.value,
-						"esfilter": subpart.esfilter,
-						"fullFilter": subpart.fullFilter,
-						"dateMarks": subpart.dateMarks,
-						"style": Map.clone(nvl(subpart.style, subpart.parent.style)),
-						"weight": subpart.weight   //YO!  WHAT DO WE *NOT* COPY?
-					});
+					var temp = subpart.parent;
+					subpart.parent=undefined;
+					var newPart= Map.clone(subpart);
+					subpart.parent=temp;
 
+					newPart.name = [subpart.name, subpart.parent.name].join(param.separator);
+					newPart.esfilter = useFullFilter ? subpart.fullFilter : subpart.esfilter;
+					newPart.style = Map.setDefault({}, subpart.style, subpart.parent.style);
+					partitions.append(newPart);
 				})
 			})
 		} else {
@@ -189,11 +188,12 @@ Dimension.prototype = {
 				if (lowerCaseOnly) part.esfilter = CNV.JSON2Object(CNV.Object2JSON(part.esfilter).toLowerCase());
 			} else if (part.partitions) {
 				//DEFAULT esfilter IS THE UNION OF ALL CHILD FILTERS
-				if (part.partitions.length > 100) {
-					Log.error("Must define an esfilter on " + part.name + ", there are too many partitions (" + part.partitions.length + ")");
-				} else if (part.esfilter === undefined) {
-					part.esfilter = {"or": part.partitions.select("esfilter")};
-				}//endif
+				if (part.partitions.length > 600) Log.error("Must define an esfilter on " + part.name + ", there are too many partitions (" + part.partitions.length + ")");
+				part.esfilter = {"or": part.partitions.select("esfilter")};
+			} else if (part.edges) {
+				//DEFAULT esfilter IS THE UNION OF ALL CHILD FILTERS
+				if (part.edges.length > 600) Log.error("Must define an esfilter on " + part.name + ", there are too many partitions (" + part.partitions.length + ")");
+				part.esfilter = {"or": part.edges.select("esfilter")};
 			}//endif
 		}
 
@@ -221,19 +221,19 @@ Dimension.prototype = {
 						return {"name": f, "value": f}
 					});
 
-					var a = Log.action("Get parts of " + dim.name, true);
-					var parts = yield (ESQuery.run({
-						"from": dim.index,
-						"select": {"name": "count", "value": "1", "aggregate": "count"},
-						"edges": edges,
-						"esfilter": dim.esfilter,
-						"limit": dim.limit
-					}));
-					Log.actionDone(a);
-
-					var d = parts.edges[0].domain;
-
 					if (dim.path !== undefined) {
+						var a = Log.action("Get parts of " + dim.name, true);
+						var parts = yield (ESQuery.run({
+							"from": dim.index,
+							"select": {"name": "count", "value": "1", "aggregate": "count"},
+							"edges": edges,
+							"esfilter": dim.esfilter,
+							"limit": dim.limit
+						}));
+						Log.actionDone(a);
+
+						var d = parts.edges[0].domain;
+
 						if (edges.length > 1) Log.error("Not supported yet");
 						//EACH TERM RETURNED IS A PATH INTO A PARTITION TREE
 						var temp = {"partitions": []};
@@ -250,6 +250,21 @@ Dimension.prototype = {
 						if (dim.value === undefined) dim.value = "name";
 						dim.partitions = temp.partitions;
 					} else if (edges.length == 1) {
+						var a = Log.action("Get parts of " + dim.name, true);
+						try{
+							var parts = yield (ESQuery.run({
+								"from": dim.index,
+								"select": {"name": "count", "value": "1", "aggregate": "count"},
+								"edges": edges,
+								"esfilter": dim.esfilter,
+								"limit": dim.limit
+							}));
+						}finally{
+							Log.actionDone(a);
+						}
+
+						var d = parts.edges[0].domain;
+
 						dim.value = "name";  //USE THE "name" ATTRIBUTE OF PARTS
 
 						//SIMPLE LIST OF PARTS RETURNED, BE SURE TO INTERRELATE THEM
@@ -265,6 +280,22 @@ Dimension.prototype = {
 					} else if (edges.length == 2) {
 						dim.value = "name";  //USE THE "name" ATTRIBUTE OF PARTS
 
+						//TODO: THIS IS REALLY SLOW!!
+						var a = Log.action("Get parts of " + dim.name, true);
+						try{
+							var parts = yield (ESQuery.run({
+								"from": dim.index,
+								"select": {"name": "count", "value": "1", "aggregate": "count"},
+								"edges": edges,
+								"esfilter": dim.esfilter,
+								"limit": dim.limit
+							}));
+						}finally{
+							Log.actionDone(a);
+						}
+
+
+						var d = parts.edges[0].domain;
 						var d2 = parts.edges[1].domain;
 
 						//SIMPLE LIST OF PARTS RETURNED, BE SURE TO INTERRELATE THEM

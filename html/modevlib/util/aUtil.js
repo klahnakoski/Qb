@@ -81,7 +81,7 @@ Map.clone = Map.jsonCopy;
 //IF map IS NOT 1-1 THAT'S YOUR PROBLEM
 Map.inverse=function(map){
 	var output={};
-	forAllKey(map, function(k, v){output[v]=k;});
+	Map.forall(map, function(k, v){output[v]=k;});
 	return output;
 };//method
 
@@ -92,6 +92,24 @@ Map.expecting=function(obj, keyList){
 		if (obj[keyList[i]]===undefined) Log.error("expecting object to have '"+keyList[i]+"' attribute");
 	}//for
 };
+
+// ASSUME THE DOTS (.) IN fieldName ARE SEPARATORS
+// AND THE RESULTING LIST IS A PATH INTO THE STRUCTURE
+// (ESCAPE "." WITH "\\.", IF REQUIRED)
+Map.get=function(obj, fieldName){
+	if (obj===undefined || obj==null) return obj;
+	var path = splitField(fieldName);
+	for (var i=0;i<path.length-1;i++){
+		var step = path[i];
+		if (step=="length"){
+			obj = eval("obj.length");
+		}else{
+			obj = obj[step];
+		}//endif
+		if (obj===undefined || obj==null) return undefined;
+	}//endif
+	return obj[path.last()];
+};//method
 
 
 Map.codomain=function(map){
@@ -144,6 +162,9 @@ var forAllKey=function(map, func){
 	}//for
 };
 
+Map.forall = forAllKey;
+Map.items = forAllKey;
+
 var countAllKey=function(map){
 	var count=0;
 	var keys=Object.keys(map);
@@ -169,12 +190,45 @@ var mapAllKey=function(map, func){
 	return output;
 };
 
+
+//RETURN LIST OF {"key":key, "value":val} PAIRS
+function getItems(map){
+	var output=[];
+	var keys=Object.keys(map);
+	for(var i=keys.length;i--;){
+		var key=keys[i];
+		var val=map[key];
+		if (val!==undefined){
+			output.push({"key":key, "value":val});
+		}//endif
+	}//for
+	return output;
+}//function
+Map.getItems=getItems;
+
+
+Map.getValues=function getValues(map){
+	var output=[];
+	var keys=Object.keys(map);
+	for(var i=keys.length;i--;){
+		var key=keys[i];
+		var val=map[key];
+		if (val!==undefined){
+			output.push(val);
+		}//endif
+	}//for
+	return output;
+};
+
+Map.getKeys = Object.keys;
+
+
 //USE THE MAP FOR REVERSE LOOKUP ON codomain VALUES PROVIDED
 //SINCE THE MAP CODOMAIN IS A VALUE, === IS USED FOR COMPARISION
 var reverseMap=function(map, codomain){
 	var output=[];
 	codomain.forall(function(c, i){
-		forAllKey(map, function(k, v){
+		Map.forall(map, function(k, v){
 			if (v===c) output.push(k);
 		});
 	});
@@ -185,9 +239,18 @@ var reverseMap=function(map, codomain){
 
 //RETURN FIRST NOT NULL, AND DEFINED VALUE
 function nvl(){
+	var args=arguments;
+	if (args instanceof Array && args.length == 1) {
+		if (arguments[0] == undefined) {
+			return null;
+		}else{
+			args=arguments[0]; //ASSUME IT IS AN ARRAY
+		}//endif
+	}//endif
+
 	var a;
-	for(var i=0;i<arguments.length;i++){
-		a=arguments[i];
+	for(var i=0;i<args.length;i++){
+		a=args[i];
 		if (a!==undefined && a!=null) return a;
 	}//for
 	return null;

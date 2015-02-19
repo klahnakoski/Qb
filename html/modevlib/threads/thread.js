@@ -9,25 +9,65 @@
 
 //INSPIRED FROM  https://github.com/airportyh/trampoline.js/blob/master/6_add_exception.html
 
+
+//TEST IF GENERATORS WORK
+try{
+	eval("(function*(){})");
+} catch (e) {
+	setTimeout(
+		function(){
+			$("body").html(
+				'<div style="height:100%;width:100%;vertical-align: middle; text-align: center;"><h1>This page uses Javascript Generators!</h1>' +
+				'<div style="line-height: 1em;font-size:1.5em;max-width:800px;  margin-left: auto; margin-right: auto;">I suggest using Firefox.  If you must use Google Chrome, you can enable Experimental Javascript at <a href="chrome://flags/#enable-javascript-harmony">chrome://flags/#enable-javascript-harmony</a> (and then reboot).<br>' +
+					'If you must use IE, then I am sorry.</div>' +
+				'</div>'
+			);
+		},
+		5000  //A LITTLE DELAY WITH HOPE $ WILL BE DEFINED!! :)
+	);
+}//try
+
+
+
 var Thread;
 
-build = function () {
+build = function(){
+
+	var currentTimestamp;
+	if (Date.currentTimestamp) {
+		currentTimestamp = Date.currentTimestamp;
+	} else {
+		currentTimestamp = Date.now;
+	}//endif
+
 	var DEBUG = false;
+	var POPUP_ON_ERROR = true;
 	var FIRST_BLOCK_TIME = 500;	//TIME UNTIL YIELD
 	var NEXT_BLOCK_TIME = 150;	//THE MAXMIMUM TIME (ms) A PIECE OF CODE SHOULD HOG THE MAIN THREAD
 	var YIELD = {"name": "yield"};  //BE COOPERATIVE, WILL PAUSE EVERY MAX_TIME_BLOCK MILLISECONDS
 
 	//Suspend CLASS
-	var Suspend = function (request) {
+	var Suspend = function(request){
 		this.name = "suspend";
 		this.request = request;
 	};
 	Suspend.name = "suspend";
 
-	var dummy = {"close": function () {
-	}};//DUMMY GENERATOR
+	var DUMMY_GENERATOR = {"close": function(){
+	}};
 
-	Thread = function (gen) {
+	//RETURN FIRST NOT NULL, AND DEFINED VALUE
+	function nvl(){
+		var args = arguments;
+		var a;
+		for (var i = 0; i < args.length; i++) {
+			a = args[i];
+			if (a !== undefined && a != null) return a;
+		}//for
+		return null;
+	}//method
+
+	Thread = function(gen){
 		if (typeof(gen) == "function") {
 			try {
 				gen = gen();	//MAYBE THE FUNCTION WILL CREATE A GENERATOR
@@ -38,14 +78,16 @@ build = function () {
 				Log.error("Expecting a Generator!", e);
 			}//endif
 		}//endif
-		this.parentThread = Thread.currentThread;
 
 		this.keepRunning = true;
 		this.gen = null;    //CURRENT GENERATOR
 		this.stack = [gen];
-		this.nextYield = new Date().getTime() + FIRST_BLOCK_TIME;
+		this.nextYield = currentTimestamp() + FIRST_BLOCK_TIME;
 		this.children = [];
 	};
+
+	Thread.YIELD = YIELD;
+
 
 	//YOU SHOULD NOT NEED THESE UNLESS YOU ARE CONVERTING ASYNCH CALLS TO SYNCH CALLS
 	//EVEN THEN, MAYBE YOU CAN USE Thread.call
@@ -53,7 +95,7 @@ build = function () {
 	Thread.Interrupted = new Exception("Interrupted");
 
 	Thread.run = function(name, gen){
-		if (typeof(name) != "string"){
+		if (typeof(name) != "string") {
 			gen = name;
 			name = undefined;
 		}//endif
@@ -67,7 +109,7 @@ build = function () {
 
 	//JUST LIKE RUN, ONLY DOES NOT REGISTER THE THREAD IN isRunning
 	Thread.daemon = function(name, gen){
-		if (typeof(name) != "string"){
+		if (typeof(name) != "string") {
 			gen = name;
 			name = undefined;
 		}//endif
@@ -75,23 +117,21 @@ build = function () {
 		//START IN SILENT MODE
 		var output = new Thread(gen);
 		output.name = name;
-		output.parentThread = Thread.currentThread;
-		output.parentThread.children.push(this);
 		output.resume(output.stack.pop());
 		return output;
 	};//method
 
 
-	//FEELING LUCKY?  MAYBE THIS GENERATOR WILL NOT DELAY AND RETURN A VALID VALUE BEFORE IT BLOCKS
+	//FEELING LUCKY?  MAYBE THIS GENERATOR WILL NOT DELAY AND RETURN A VALID VALUE BEFORE IT YIELDS
 	//YOU CAN HAVE IT BLOCK THE MAIN TREAD FOR time MILLISECONDS
-	Thread.runSynchronously = function (gen, time) {
+	Thread.runSynchronously = function(gen, time){
 		if (String(gen) !== '[object Generator]') {
-			Log.error("You can not pass a function.  Pass a generator! (have function use the yield keyword instead)");
+			Log.error("You can not pass a function.  Pass a generator!");
 		}//endif
 
 		var thread = new Thread(gen);
 		if (time !== undefined) {
-			thread.nextYield = new Date().getTime() + time;
+			thread.nextYield = currentTimestamp() + time;
 		}//endif
 		var result = thread.start();
 		if (result === Suspend)
@@ -100,7 +140,7 @@ build = function () {
 	};//method
 
 
-	Thread.getStackTrace = function (depth) {
+	Thread.getStackTrace = function(depth){
 		var trace;
 		try {
 			this.undef();  //deliberate error
@@ -111,46 +151,57 @@ build = function () {
 	};//method
 
 
-	var mainThread = {"name": "main thread", "children": []};
-	Thread.currentThread = mainThread
+	//ADD A KILLABLE CHILD {"kill":function}
+	function addChild(child){
+		this.children.push(child);
+		child.parentThread = this;
+//		Log.note("add "+child.name+" as child of "+this.name);
+//		Log.note("Children  of "+this.name+": "+CNV.Object2JSON(this.children.select("name")));
+	}//function
+	Thread.prototype.addChild = addChild;
+
+	var mainThread = {"name": "main thread", "children": [], "addChild": addChild};
+	Thread.currentThread = mainThread;
 	Thread.isRunning = [];
 
 	//REPLACE THESE WHEN YOU WANT SIGNALS ABOUT WORKING THREADS
-	Thread.showWorking = function () {
+	Thread.showWorking = function(){
 	};
-	Thread.hideWorking = function () {
+	Thread.hideWorking = function(){
 	};
 
 
-	Thread.prototype.start = function () {
+	Thread.prototype.start = function(){
 		Thread.isRunning.push(this);
-		this.parentThread = Thread.currentThread;
-		this.parentThread.children.push(this);
-		Thread.showWorking();
+		Thread.currentThread.addChild(this);
+		Thread.showWorking(Thread.isRunning.length);
 		return this.resume(this.stack.pop());
 	};
 
 
-	function Thread_prototype_resume(retval) {
-		Thread.showWorking();
+	Thread.prototype.resume = function Thread_prototype_resume(retval){
+		Thread.showWorking(Thread.isRunning.length);
 		while (this.keepRunning) {
-			if (String(retval) === '[object Generator]') {
+			if (retval === YIELD) {
+				if (this.nextYield < currentTimestamp()) {
+					var self_ = this;
+					setTimeout(function(){
+							self_.nextYield = currentTimestamp() + NEXT_BLOCK_TIME;
+							self_.currentRequest = undefined;
+							self_.resume();
+						}, 1
+					);
+					return Suspend;
+				} else {
+					//simply resume
+				}//endif
+			} else if (String(retval) === '[object Generator]') {
 				this.stack.push(retval);
 				retval = undefined
-			} else if (retval === YIELD) {
-				if (this.nextYield < new Date().getTime()) {
-					var self_ = this;
-//				this.stack.push(this.gen);
-//				this.stack.push({"close":function(){}}); //DUMMY VALUE
-					setTimeout(function () {
-						self_.nextYield = new Date().getTime() + NEXT_BLOCK_TIME;
-						self_.currentRequest = undefined;
-						self_.resume();
-					}, 1);
-					return Suspend;
-				}//endif
 			} else if (retval instanceof Suspend) {
-				this.currentRequest = retval.request;
+				if (retval.request) {
+					this.addChild(retval.request)
+				}//endif
 				if (!this.keepRunning) this.kill(new Exception("thread aborted"));
 				this.stack.pop();//THE suspend() CALL MUST BE REMOVED FROM STACK
 				if (this.stack.length == 0)
@@ -158,8 +209,8 @@ build = function () {
 				return Suspend;
 			} else if (retval === Thread.Resume) {
 				var self = this;
-				retval = function (retval) {
-					self.nextYield = new Date().getTime() + NEXT_BLOCK_TIME;
+				retval = function(retval){
+					self.nextYield = currentTimestamp() + NEXT_BLOCK_TIME;
 					self.currentRequest = undefined;
 					self.resume(retval);
 				};
@@ -173,36 +224,28 @@ build = function () {
 				}//endif
 			}//endif
 
+			var selfThread = Thread.currentThread;
+			Thread.currentThread = this;
 			try {
-
 				this.gen = this.stack[this.stack.length - 1];
 				if (this.gen.history === undefined) this.gen.history = [];
 
-				Thread.currentThread = this;
-
+				var result;
 				if (retval instanceof Exception) {
 					result = this.gen.throw(retval);  //THROW METHOD OF THE GENERATOR IS CALLED, WHICH IS SENT TO CALLER AS thrown EXCEPTION
 				} else {
 					result = this.gen.next(retval)
 				}//endif
 				retval = result.value;
-
-				Thread.currentThread = mainThread;
 			} catch (e) {
-				Thread.currentThread = mainThread;
-
-				if (e instanceof Exception) {
-					retval = e;
-				} else {
-					retval = new Exception("Error", e);
-				}//endif
+				retval = Exception.wrap(e);
+			} finally {
+				Thread.currentThread = selfThread;
 			}//try
 		}//while
 		//CAN GET HERE WHEN THREAD IS KILLED AND Thread.Resume CALLS BACK
 		this.kill(retval);
-	}
-
-	Thread.prototype.resume = Thread_prototype_resume;
+	};//function
 
 	//THIS IS A MESS, CALLED FROM DIFFERENT LOCATIONS, AND MUST DISCOVER
 	//CONTEXT TO RUN CORRECT CODE
@@ -210,32 +253,31 @@ build = function () {
 	//retval===true - TOTAL KILL, NO TRY/CATCH (REALLY BAD) SUPPRESS THREAD EXCEPTION
 	//retval instanceof Exception - THROW SPECIFIC THREAD EXCEPTION
 	Thread.prototype.kill = function(retval){
-		//HOPEFULLY cr WILl BE UNDEFINED, OR NOT, (NOT CHANGING)
-		var cr = this.currentRequest;
-		this.currentRequest = undefined;
 
-		if (cr !== undefined) {
-			//SOMETIMES this.currentRequest===undefined AT THIS POINT (LOOKS LIKE REAL MUTITHREADING?!)
+		var children = this.children.copy();  //CHILD THREAD WILL REMOVE THEMSELVES FROM THIS LIST
+//		Log.note("Killing "+CNV.Object2JSON(children.select("name"))+" child threads");
+		for (var c = 0; c < children.length; c++) {
+			var child = children[c];
+			if (!child) continue;
 			try {
-				if (cr.kill) {
-					cr.kill();
-				} else if (cr.abort) {
-					cr.abort();
+				if (child.kill) {
+					child.kill();
+				} else if (child.abort) {
+					child.abort();
 				}//endif
 			} catch (e) {
-				Log.error("kill?", cr)
+				Log.error("kill?", child)
 			}//try
-		}//endif
-
+		}//for
 
 		if (this.stack.length > 0) {
-			this.stack.push(dummy); //TOP OF STACK IS THE RUNNING GENERATOR, THIS kill() CAME FROM BEYOND
-			if (retval==true){
-				while(this.stack.length>0){
+			this.stack.push(DUMMY_GENERATOR); //TOP OF STACK IS THE RUNNING GENERATOR, THIS kill() CAME FROM BEYOND
+			if (retval == true) {
+				while (this.stack.length > 0) {
 					var g = this.stack.pop();
 					if (g.close) g.close();  //PREMATURE CLOSE, REALLY BAD
 				}//while
-			}else{
+			} else {
 				this.resume(Thread.Interrupted);
 			}//endif
 			if (this.stack.length > 0)
@@ -264,7 +306,7 @@ build = function () {
 	};
 
 	//ASSUME THERE IS NO MORE STUFF FOR THREAD TO DO
-	Thread.prototype.shutdown = function (retval) {
+	Thread.prototype.shutdown = function(retval){
 		this.threadResponse = retval;				//REMEMBER FOR THREAD THAT JOINS WITH THIS
 		this.keepRunning = false;
 
@@ -276,7 +318,11 @@ build = function () {
 		}//endif
 
 		if (retval instanceof Exception) {
-			Log.alert("Uncaught Error in thread: " + (this.name !== undefined ? this.name : "") + "\n  " + retval.toString());
+			if (POPUP_ON_ERROR || DEBUG) {
+				Log.alert("Uncaught Error in thread: " + nvl(this.name, "") + "\n  " + retval.toString());
+			} else {
+				Log.warning("Uncaught Error in thread: " + nvl(this.name, "") + "\n  ", retval);
+			}//endif
 		}//endif
 
 		return {"threadResponse": retval};
@@ -284,7 +330,7 @@ build = function () {
 
 
 	//PUT AT THE BEGINNING OF A GENERATOR TO ENSURE IT WILL ONLY BE CALLED USING yield()
-	Thread.assertThreaded = function () {
+	Thread.assertThreaded = function(){
 		//GET CALLER AND DETERMINE IF RUNNING IN THREADED MODE
 		if (arguments.callee.caller.caller.name != "Thread_prototype_resume")
 			Log.error("must call from a thread as \"yield (GUI.refresh());\" ");
@@ -292,19 +338,20 @@ build = function () {
 
 
 	//DO NOT RESUME FOR A WHILE
-	Thread.sleep = function*(millis) {
+	Thread.sleep = function*(millis){
 		var to = setTimeout((yield(Thread.Resume)), millis);
-		yield (Thread.suspend({"kill": function () {
+		yield (Thread.suspend({"kill": function(){
 			clearTimeout(to);
 		}}))
 	};
 
 	//LET THE MAIN EVENT LOOP GET SOME ACTION
-	Thread.yield = function*() {
+	// CALLING yield (Thread.YIELD) IS FASTER THAN yield (Thread.yield())
+	Thread.yield = function*(){
 		yield (YIELD);
 	};
 
-	Thread.suspend = function*(request) {
+	Thread.suspend = function*(request){
 		if (request !== undefined && request.kill === undefined && request.abort === undefined) {
 			Log.error("Expecting an object with kill() or abort() function");
 		}//endif
@@ -313,12 +360,21 @@ build = function () {
 
 
 	//RETURNS THREAD EXCEPTION
-	Thread.prototype.join = function (timeout) {
+	Thread.prototype.join = function*(timeout){
 		return Thread.join(this, timeout);
 	};
 
 	//WAIT FOR OTHER THREAD TO FINISH
-	Thread.join = function*(otherThread, timeout) {
+	Thread.join = function*(otherThread, timeout){
+		var children = otherThread.children.copy();
+		for (var c = 0; c < children.length; c++) {
+			var childThread = children[c];
+			if (!(childThread instanceof Thread)) continue;
+
+			Thread.join(childThread, timeout);
+		}//for
+
+
 		if (timeout === undefined) {
 			if (DEBUG)
 				while (otherThread.keepRunning) {
@@ -331,7 +387,9 @@ build = function () {
 				//WE WILL SIMPLY MAKE THE JOINING THREAD LOOK LIKE THE otherThread's CALLER
 				//(WILL ALSO PACKAGE ANY EXCEPTIONS THAT ARE THROWN FROM otherThread)
 				var resumeWhenDone = yield(Thread.Resume);
-				var gen = Thread_join_resume(resumeWhenDone);
+				var gen = Thread_join_resume(function(retval){
+					resumeWhenDone(retval);
+				});
 				gen.next();  //THE FIRST CALL TO next()
 				otherThread.stack.unshift(gen);
 				yield (Thread.suspend());
@@ -352,11 +410,17 @@ build = function () {
 	//THIS GENERATOR EXPECTS send TO BE CALLED TWICE ONLY
 	//FIRST WITH NO PARAMETERS, AS REQUIRED BY ALL GENERATORS
 	//THE SEND RUN FROM THE JOINING THREAD TO RETURN THE VALUE
-	function* Thread_join_resume(resumeFunction) {
+	function* Thread_join_resume(resumeFunction){
 		var result;
 		try {
 			result = yield(undefined);
 		} catch (e) {
+			if (POPUP_ON_ERROR || DEBUG) {
+				Log.alert("Uncaught Error in thread: " + (this.name !== undefined ? this.name : "") + "\n  " + e.toString());
+			} else {
+				Log.warning("Uncaught Error in thread: " + (this.name !== undefined ? this.name : "") + "\n  ", e);
+			}//endif
+
 			result = e
 		}//try
 		resumeFunction({"threadResponse": result});  //PACK TO HIDE EXCEPTION
@@ -364,9 +428,9 @@ build = function () {
 
 	//CALL THE funcTION WITH THE GIVEN PARAMETERS
 	//WILL ADD success AND error FUNCTIONS TO param TO CAPTURE RESPONSE
-	Thread.call = function*(func, param) {
+	Thread.call = function*(func, param){
 		param.success = yield(Thread.Resume);
-		param.error = function () {
+		param.error = function(){
 			throw new Exception("callback to func was error:\n\t" + window.JSON.stringify(arguments), undefined);
 		};
 		var instance = func(param);
@@ -379,12 +443,20 @@ build = function () {
 
 if (window.Exception === undefined) {
 
-	window.Exception = function (description, cause) {
-		this.message = description;
+	window.Exception = function(message, cause){
+		this.message = message;
 		this.cause = cause;
 	};
 
-	Array.prototype.remove = function (obj, start) {
+	window.Exception.wrap = function(e){
+		if (e instanceof Exception) {
+			return e;
+		} else {
+			return new Exception("Error", e);
+		}//endif
+	};
+
+	Array.prototype.remove = function(obj, start){
 		while (true) {
 			var i = this.indexOf(obj, start);
 			if (i == -1) return this;
@@ -404,15 +476,4 @@ if (window.Log === undefined) {
 
 
 build();
-
-
-
-
-
-
-
-
-
-
-
 

@@ -7,6 +7,14 @@ importScript("aUtil.js");
 importScript("../collections/aArray.js");
 
 
+if (Date.now) {
+	Date.currentTimestamp = Date.now;
+}else{
+	Date.currentTimestamp = function currentTimestamp(){
+		new Date().getTime();
+	}//method
+}//endif
+
 Date.now = function(){
 	return new Date();
 };//method
@@ -41,7 +49,7 @@ Date.min=function(){
 	var min=null;
 	for(var i=0;i<arguments.length;i++){
 		var v=arguments[i];
-		if (v === undefined || v == null) return null;
+		if (v === undefined || v == null) continue;
 		if (min==null || min>v) min=v;
 	}//for
 	return min;
@@ -152,7 +160,7 @@ Date.diffWeekday=function(endTime, startTime){
 	var output=((startWeek.getMilli()-startTime.getMilli())+((endWeek.getMilli()-startWeek.getMilli())/7)*5+(endTime.getMilli()-endWeek.addDay(2).getMilli()))/Duration.DAY.milli;
 
 
-	if (out!=aMath.ceil(output))
+	if (out!=aMath.sign(output)*aMath.ceil(aMath.abs(output)))
 		Log.error("Weekday calculation failed internal test");
 
 
@@ -256,6 +264,7 @@ Date.prototype.addWeekday = function(value){
 
 
 Date.prototype.addWeek = function(value){
+	if (value===undefined) value=1;
 	var output = new Date(this);
 	output.setUTCDate(this.getUTCDate() + (value * 7));
 	return output;
@@ -363,6 +372,9 @@ Date.prototype.ceilingMonth = function(){
 	return this.floorMonth().addMonth(1);
 };//method
 
+Date.prototype.ceiling = function(interval){
+	return this.floor(interval).add(interval);
+};//method
 
 
 
@@ -386,7 +398,7 @@ Date.prototype.ceilingMonth = function(){
 // Minute       | mm (2 digits)      | m (1 or 2 digits)
 // Second       | ss (2 digits)      | s (1 or 2 digits)
 // MilliSecond  | fff (3 digits)     |
-// MicroSecond  | ffffff (6 digits)  | 
+// MicroSecond  | ffffff (6 digits)  |
 // AM/PM        | a                  |
 //
 // NOTE THE DIFFERENCE BETWEEN MM and mm! Month=MM, not mm!
@@ -822,7 +834,7 @@ Date.getDateFromFormat=function(val, format, isPastDate){
 };//method
 
 // ------------------------------------------------------------------
-// parseDate( date_string [,isPastDate] [, prefer_euro_format] )
+// parseDate( date_string [,isPastDate])
 //
 // This function takes a date string and tries to match it to a
 // number of possible date formats to get the value. It will try to
@@ -830,9 +842,6 @@ Date.getDateFromFormat=function(val, format, isPastDate){
 // y-M-d   MMM d, y   MMM d,y   y-MMM-d   d-MMM-y  MMM d
 // M/d/y   M-d-y      M.d.y     MMM-d     M/d      M-d
 // d/M/y   d-M-y      d.M.y     d-MMM     d/M      d-M
-// A second argument may be passed to instruct the method to search
-// for formats like d/M/y (european format) before M/d/y (American).
-// Returns a Date object or null if no patterns match.
 // ------------------------------------------------------------------
 {
 	var generalFormats = ['EE MMM d, yyyy', 'EE MMM d, yyyy @ hh:mm a', 'y M d', 'y - M - d',  'yyyy - MM - dd HH : mm : ss', 'MMM d, y', 'MMM d y', 'MMM d', 'y - MMM - d', 'yyyyMMMd', 'd - MMM - y', 'd MMM y'];

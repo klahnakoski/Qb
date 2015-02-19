@@ -2,15 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+importScript("util/aHTML.js");
 importScript("aLibrary.js");
 importScript("rest/BugzillaClient.js");
 
 
 Bugzilla={};
-Bugzilla.JSON_URL="https://api-dev.bugzilla.mozilla.org/latest";
 Bugzilla.URL="https://bugzilla.mozilla.org/buglist.cgi";
-//Bugzilla.JSONP_CALLBACK="bz_callback";
-//Bugzilla.numCallback=0;
 
 Bugzilla.showBugs=function(bugList){
 	var url=Bugzilla.searchBugsURL(bugList);
@@ -21,7 +19,7 @@ Bugzilla.showBugs=function(bugList){
 Bugzilla.searchBugsURL=function(bugList){
 	if (bugList instanceof Array){
 		return Bugzilla.URL+"?quicksearch="+bugList.join('%2C');
-	}else if (typeof(buglist)=="string"){
+	}else if (typeof(bugList)=="string"){
 		return Bugzilla.URL+"?quicksearch="+bugList.replaceAll(", ", "%2C");
 	}else{
 		return Bugzilla.URL+"?quicksearch="+bugList;
@@ -29,7 +27,7 @@ Bugzilla.searchBugsURL=function(bugList){
 };//method
 
 Bugzilla.linkToBug=function(bugList){
-	return "<a href='"+Bugzilla.searchBugsURL(bugList)+"'>"+bugList+"</a>";
+	return new HTML("<a href='"+Bugzilla.searchBugsURL(bugList)+"'>"+bugList+"</a>");
 };//method
 
 
@@ -52,7 +50,7 @@ Bugzilla.search=function*(bugList, fields){
 		}, function(status, data){
 			if (status=="error"){
 				numCalls--;
-				throw new Exception("can not get bugs!");
+				Log.error("can not get bugs!");
 			}//endif
 			numCalls--;
 			Log.note(result.length+"+"+data.length);

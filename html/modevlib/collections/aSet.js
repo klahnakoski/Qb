@@ -3,11 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
+importScript("../util/aUtil.js");
 importScript("aArray.js");
 
 
 
 var aSet=function(data){
+	if (this.VERIFY_INSTANCE!=aSet.VERIFY_INSTANCE){
+		Log.error("Expecting to be called using 'new'");
+	}//endif
 	this.map={};
 	if (data!==undefined)
 		this.addArray(data);
@@ -15,15 +19,18 @@ var aSet=function(data){
 
 
 (function(){
+	aSet.VERIFY_INSTANCE={};
+	aSet.prototype.VERIFY_INSTANCE=aSet.VERIFY_INSTANCE;
 
 	aSet.prototype.add=function(v){
-		this.map[v]=1;
+		this.map[v]=v;
 		return this;
 	};
 
 	aSet.prototype.addArray=function(a){
 		for(var i=a.length;i--;){
-			this.map[a[i]]=1;
+			var v=a[i];
+			this.map[v]=v;
 		}//for
 		return this;
 	};
@@ -34,11 +41,11 @@ var aSet=function(data){
 	};
 
 	aSet.prototype.getArray=function(){
-		return Object.keys(this.map);
+		return Map.getValues(this.map);
 	};
 
 	aSet.prototype.contains=function(v){
-		return this.map[v]==1;
+		return this.map[v]!==undefined;
 	};
 
 	aSet.prototype.map=function(func){

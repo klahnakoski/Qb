@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+importScript("aHTML.js");
 importScript("aUtil.js");
 
 
@@ -171,7 +172,7 @@ CNV.Object2JSON = function(json){
 CNV.Object2CSS=function(value){
 	//FIND DEPTH
 	var depth=1;
-	forAllKey(value, function(name, value){
+	Map.forall(value, function(name, value){
 		if (value!=null && typeof(value)=="object"){
 			depth=2;
 		}//endif
@@ -209,10 +210,41 @@ CNV.Object2URL=function(value){
 	return $.param(value).replaceAll("%5B%5D=", "=");
 };//method
 
-CNV.String2HTML = function(value){
-	value=value.replaceAll("\n", "<br>").replaceAll("\t", "&nbsp;&nbsp;&nbsp;&nbsp;");
-	return value;
-};//method
+
+
+(function(){
+	var entityMap = {
+		"&": "&amp;",
+		"<": "&lt;",
+		">": "&gt;",
+		'"': '&quot;',
+		"'": '&#39;',
+		"/": '&#x2F;',
+		"\n": "<br>",
+		"\t": "&nbsp;&nbsp;&nbsp;&nbsp;"
+	};
+
+
+	CNV.String2HTML = function String2HTML(value) {
+		if (value==null) return "";
+		return value.translate(entityMap);
+	};//method
+
+	var attrMap = {
+		"&": "&amp;",
+		'"': '&quot;',
+		"\n": "",
+		"\t": ""
+	};
+
+	CNV.value2HTMLAttribute = function(value){
+		if (value==null) return "";
+		if (typeof(value)=="string") return value.translate(attrMap);
+		return CNV.Object2JSON(value).translate(attrMap);
+	};
+
+})();
+
 
 CNV.String2HTMLTable = function(value){
 	value="<table><tr>"+value.replaceAll("\n", "</tr><tr>").replaceAll("\t", "</td><td>")+"</tr></table>";
@@ -278,9 +310,9 @@ CNV.Value2Text=function(value){
 //CONVERT TO JAVESCRIPT FOR THE SAME
 CNV.Value2Quote=function(value){
 	if (value === undefined){
-		return "";
+		return "undefined";
 	} else if (value==NaN){
-		return NaN;
+		return "NaN";
 	} else if (value == null){
 		return "null";
 	} else if (typeof(value)=="string"){
@@ -301,7 +333,7 @@ CNV.Value2Quote=function(value){
 
 CNV.String2Integer = function(value){
 	if (value===undefined) return undefined;
-	if (value==null) return null;
+	if (value==null || value=="") return null;
 	return value - 0;
 };//method
 
@@ -358,34 +390,35 @@ CNV.Cube2HTMLTable=function(query){
 	//WRITE HEADER
 
 	var header = "";
-	if (query.name) header+=HTML.tag("h2", query.name);
+	if (query.name) header+=wrapWithHtmlTag("h2", query.name);
 	var content = "";
 
 	var e=query.edges[0];
 
-	if (query.edges.length==0){
+	if (query.edges.length==0 || (query.edges.length==1 && query.edges[0].domain.interval=="none")){
+		//NO EDGES, OR ONLY SMOOTH EDGES MEANS ALL POINTS MUST BE LISTED
 		return CNV.List2HTMLTable(query);
 	}else if (query.edges.length==1){
 		header += "<td>" + CNV.String2HTML(e.name) + "</td>";
 
 		if (query.select instanceof Array){
 			header+=query.select.map(function(s, i){
-				return HTML.tag("td", s.name);
+				return wrapWithHtmlTag("td", s.name);
 			}).join("");
 
 			content=e.domain.partitions.map(function(v, i){
 				return "<tr>"+
-					HTML.tag("th", e.domain.end(v))+
+					wrapWithHtmlTag("th", e.domain.end(v))+
 					query.select.map(function(s, j){
-						return HTML.tag("td", query.cube[i][s.name])
+						return wrapWithHtmlTag("td", query.cube[i][s.name])
 					}).join("")+
 					"</tr>";
 			}).join("\n");
 		}else{
-			header += HTML.tag("th", query.select.name);
+			header += wrapWithHtmlTag("th", query.select.name);
 
 			content=e.domain.partitions.map(function(p, i){
-				return "<tr>"+HTML.tag("th", e.domain.end(p))+HTML.tag("td", query.cube[i])+"</tr>";
+				return "<tr>"+wrapWithHtmlTag("th", e.domain.end(p))+wrapWithHtmlTag("td", query.cube[i])+"</tr>";
 			}).join("\n");
 		}//endif
 	}else if (query.edges.length==2){
@@ -393,7 +426,7 @@ CNV.Cube2HTMLTable=function(query){
 			Log.error("Can not display cube: select clause can not be array, or there can be only one edge");
 		}else{
 
-			header+=HTML.tag("td", query.edges[1].name);	//COLUMN FOR SECOND EDGE
+			header+=wrapWithHtmlTag("td", query.edges[1].name);	//COLUMN FOR SECOND EDGE
 			e.domain.partitions.forall(function(p, i){
 				var name=e.domain.end(p);
 				if (name==p && typeof(name)!="string") name=p.name;
@@ -404,21 +437,21 @@ CNV.Cube2HTMLTable=function(query){
 
 			content="";
 			query.edges[1].domain.partitions.forall(function(p,r){
-				var name=query.edges[1].domain.end(p);
+				var name=query.edges[1].domain.label(p);
 				if (name==p && typeof(name)!="string") name=p.name;
-				if (p.name!==undefined && p.name!=name)
-					Log.error("make sure part.name matches the end(part)=="+name+" codomain");
-				content+="<tr>"+HTML.tag("th", name);
+//				if (p.name!==undefined && p.name!=name)
+//					Log.error("make sure part.name matches the end(part)=="+name+" codomain");
+				content+="<tr>"+wrapWithHtmlTag("th", name);
 				for(var c=0;c<query.cube.length;c++){
-					content+=HTML.tag("td", query.cube[c][r]);
+					content+=wrapWithHtmlTag("td", query.cube[c][r]);
 				}//for
 				content+="</tr>";
 			});
 
 			if (query.edges[1].allowNulls){
-				content+="<tr>"+HTML.tag("th", query.edges[1].domain.NULL.name);
+				content+="<tr>"+wrapWithHtmlTag("th", query.edges[1].domain.NULL.name);
 				for(var c=0;c<query.cube.length;c++){
-					content+=HTML.tag("td", query.cube[c][r]);
+					content+=wrapWithHtmlTag("td", query.cube[c][r]);
 				}//for
 				content+="</tr>";
 			}//endif
@@ -426,16 +459,16 @@ CNV.Cube2HTMLTable=function(query){
 
 
 			//SHOW FIRST EDGE AS ROWS, SECOND AS COLUMNS
-//			header+=HTML.tag(e.name);	//COLUMN FOR FIRST EDGE
+//			header+=wrapWithHtmlTag(e.name);	//COLUMN FOR FIRST EDGE
 //			query.edges[1].domain.partitions.forall(function(v, i){
 //				header += "<td>" + CNV.String2HTML(v.name) + "</td>";
 //			});
 //
 //			content=query.cube.map(function(r, i){
 //				return "<tr>"+
-//					HTML.tag(e.domain.partitions[i].name, "th")+
+//					wrapWithHtmlTag(e.domain.partitions[i].name, "th")+
 //					r.map(function(c, j){
-//						return HTML.tag(c);
+//						return wrapWithHtmlTag(c);
 //					}).join("")+
 //					"</tr>";
 //			}).join("");
@@ -476,9 +509,9 @@ CNV.List2HTMLTable = function(data, options){
 		columns= Qb.getColumnsFromList(data);
 	}//endif
 	columns.forall(function(v, i){
-		header += HTML.tag("td", v.name);
+		header += wrapWithHtmlTag("td", v.name);
 	});
-	header = "<thead><tr>" + header + "</tr></thead>";
+	header = "<thead><tr><div>" + header + "</div></tr></thead>";
 
 
 	var output = "";
@@ -489,7 +522,7 @@ CNV.List2HTMLTable = function(data, options){
 		var row = "";
 		for(var c = 0; c < columns.length; c++){
 			var value = data[i][columns[c].name];
-			row += HTML.tag("td", value);
+			row += wrapWithHtmlTag(["td", "div"], value);
 		}//for
 		output += "<tr>" + row + "</tr>\n";
 	}//for
@@ -502,52 +535,59 @@ CNV.List2HTMLTable = function(data, options){
 };//method
 
 
-var HTML={};
-HTML.tag=function(tagName, value){
-	if (tagName===undefined) tagName="td";
+wrapWithHtmlTag = function(tagName, value){
+	if (tagName === undefined) tagName = "td";
+	tagName = Array.newInstance(tagName);
+	var prefix = tagName.map(function(t){
+		return "<" + t + ">"
+	}).join("");
+	var suffix = Qb.reverse(tagName).map(function(t){
+		return "</" + t + ">"
+	}).join("");
 
-	if (value === undefined){
+
+	if (value === undefined) {
 //		return "<"+tagName+">&lt;undefined&gt;</"+tagName+">";
-		return "<"+tagName+"></"+tagName+">";
-	} else if (value == null){
+		return prefix + suffix;
+	} else if (value == null) {
 //		return "<"+tagName+">&lt;null&gt;</"+tagName+">";
-		return "<"+tagName+"></"+tagName+">";
-	} else if (typeof(value)=="string"){
-		return "<"+tagName+">" + CNV.String2HTML(value) + "</"+tagName+">";
-	} else if (aMath.isNumeric(value)){
-		if ((""+value).length==13){
+		return prefix + suffix;
+	} else if (value instanceof HTML) {
+		return prefix + value + suffix;
+	} else if (typeof(value) == "string") {
+		return prefix + CNV.String2HTML(value) + suffix;
+	} else if (aMath.isNumeric(value)) {
+		if (("" + value).length == 13) {
 			//PROBABLY A TIMESTAMP
-			value=new Date(value);
-			if (value.floorDay().getMilli()==value.getMilli()){
-				return "<"+tagName+">" + new Date(value).format("dd-NNN-yyyy") + "</"+tagName+">";
-			}else{
-				return "<"+tagName+">" + new Date(value).format("dd-NNN-yyyy HH:mm:ss") + "</"+tagName+">";
+			value = new Date(value);
+			if (value.floorDay().getMilli() == value.getMilli()) {
+				return prefix + new Date(value).format("dd-NNN-yyyy") + suffix;
+			} else {
+				return prefix + new Date(value).format("dd-NNN-yyyy HH:mm:ss") + suffix;
 			}//endif
-		}else{
-			return "<"+tagName+" style='text-align:right;'>" + value + "</"+tagName+">";
+		} else {
+			return prefix.leftBut(1) + " style='text-align:right;'>" + value + suffix;
 		}
-	} else if (value.milli){
+	} else if (value.milli) {
 		//DURATION
-		return "<"+tagName+">" + value.toString() + "</"+tagName+">";
-	} else if (value.getTime){
-		if (value.floorDay().getMilli()==value.getMilli()){
-			return "<"+tagName+">" + new Date(value).format("dd-NNN-yyyy") + "</"+tagName+">";
-		}else{
-			return "<"+tagName+">" + new Date(value).format("dd-NNN-yyyy HH:mm:ss") + "</"+tagName+">";
+		return prefix + value.toString() + suffix;
+	} else if (value.getTime) {
+		if (value.floorDay().getMilli() == value.getMilli()) {
+			return prefix + new Date(value).format("dd-NNN-yyyy") + suffix;
+		} else {
+			return prefix + new Date(value).format("dd-NNN-yyyy HH:mm:ss") + suffix;
 		}//endif
 //	} else if (value.toString !== undefined){
-//		return "<"+tagName+">" + CNV.String2HTML(value.toString()) + "</"+tagName+">";
+//		return prefix + CNV.String2HTML(value.toString()) + suffix;
 	}//endif
 
 	var json = CNV.Object2JSON(value);
 //	if (json.indexOf("\n") == -1){
-		return "<"+tagName+">" + CNV.String2HTML(json) + "</"+tagName+">";
+	return prefix + CNV.String2HTML(json) + suffix;
 //	} else{
 //		return "<"+tagName+">&lt;json not included&gt;</"+tagName+">";
 //	}//endif
 };
-
-
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -653,12 +693,13 @@ CNV.hex2int = function(value){
 };//method
 
 
-//CONVERT FROM STRING TO SOMETHING THAT CAN BE USED BY %()
-CNV.String2JQuery=function(str){
-	var output=str.replace(/([;&,\.\+\*\~':"\!\^#$%@\[\]\(\)\/=>\|])/g, '\\$1');
-//	output=output.replaceAll(" ", "\\ ");
-	return output;
-};//method
+//CONVERT FROM STRING TO SOMETHING THAT CAN BE USED BY $()
+function String2Selector(str){
+    return str.replace(/([ ;&,\.\+\*\~':"\!\^#$%@\[\]\(\)\/=>\|])/g, '\\$1');
+}//method
+
+CNV.String2JQuery=String2Selector;
+CNV.String2Selector=String2Selector;
 
 
 TRUE_FILTER = function(row, i, rows){return true;};
@@ -668,7 +709,8 @@ CNV.esFilter2function=function(esFilter){
 	if (esFilter === undefined) return TRUE_FILTER;
 
 	var keys = Object.keys(esFilter);
-	if (keys.length != 1) Log.error("Expecting only one filter aggregate");
+	if (keys.length != 1)
+		Log.error("Expecting only one filter aggregate");
 	var op = keys[0];
 	if (op == "and"){
 		var list = esFilter[op];
@@ -705,34 +747,44 @@ CNV.esFilter2function=function(esFilter){
 			var variables = Object.keys(terms);
 			for(var k = 0; k < variables.length; k++){
 				var variable = variables[k];
-				if (row[variable]!=terms[variable]) return false;
+				var val=terms[variable];
+				var row_val=Map.get(row, variable);
+				if (val instanceof Date){
+					if (row_val.getTime()!=terms[variable].getTime()) return false;
+				}else if (row_val instanceof Array){
+					if (!row_val.contains(val)) return false;
+				}else{
+					if (row_val!=val) return false;
+				}//endif
 			}//for
 			return true;
 		};
 	} else if (op == "terms"){
 		var terms = esFilter[op];
-		return function(row, i, rows){
-			var variables = Object.keys(terms);
-			for(var k = 0; k < variables.length; k++){
-				var variable = variables[k];
-				if (!terms[variable].contains(row[variable])) return false;
-			}//for
+		var variables = Object.keys(terms);
+		if (variables.length>1) Log.error("not allowed");
+		var variable = variables[0];
+		return function(row){
+			var value = row[variable];
+			if (value===undefined){
+				return false;
+			}else if (value instanceof Array){
+				if (terms[variable].intersect(value).length==0) return false;
+			}else{
+				if (!terms[variable].contains(value)) return false;
+			}//endif
+
 			return true;
 		};
 	}else if (op=="exists"){
 		//"exists":{"field":"myField"}
-		var field = esFilter[op].field;
+		var field = nvl(esFilter[op].field, esFilter[op]);
 		return function(row, i, rows){
 			var val =row[field];
 			return (val!==undefined && val!=null);
 		};
 	}else if (op=="missing"){
-//		"missing":{
-//			"field" : "requestee",
-//			"existence" : true,
-//			"null_value" : true
-//		}
-		var field = esFilter[op].field;
+		var field = nvl(esFilter[op].field, esFilter[op]);
 		return function(row, i, rows){
 			var val =row[field];
 			return (val===undefined || val==null);
@@ -762,12 +814,40 @@ CNV.esFilter2function=function(esFilter){
 	}else if (op=="prefix"){
 		var pair = esFilter[op];
 		var variableName = Object.keys(pair)[0];
-		var value = pair[variableName];
+		var prefix = pair[variableName];
 		return function(row, i, rows){
-			return row[variableName].startsWith(value);
+			var v = row[variableName];
+			return typeof(v)=="string" && v.startsWith(prefix);
 		}
 	}else if (op=="match_all"){
 		return TRUE_FILTER;
+	}else if (op=="regexp"){
+		var pair = esFilter[op];
+		var variableName = Object.keys(pair)[0];
+		var regexp = new RegExp(pair[variableName]);
+		return function(row, i, rows){
+			if (regexp.test(row[variableName])){
+				return true;
+			}else{
+				return false;
+			}//endif
+		}
+	}else if (op=="contains"){
+		var pair = esFilter[op];
+		var variableName = Object.keys(pair)[0];
+		var substr = pair[variableName];
+		return function(row, i, rows){
+			var v = row[variableName];
+			if (v===undefined){
+				return false;
+			}else if (v instanceof Array){
+				return v.contains(substr);
+			}else if (typeof(v)=="string") {
+				return v.indexOf(substr) >= 0;
+			}else{
+				Log.error("Do not know how to handle")
+			}//endif
+		}
 	} else{
 		Log.error("'" + op + "' is an unknown operation");
 	}//endif
@@ -782,7 +862,8 @@ CNV.esFilter2Expression=function(esFilter){
 	var output = "";
 
 	var keys = Object.keys(esFilter);
-	if (keys.length != 1) Log.error("Expecting only one filter aggregate");
+	if (keys.length != 1)
+		Log.error("Expecting only one filter aggregate");
 	var op = keys[0];
 	if (op == "and"){
 		var list = esFilter[op];
@@ -815,25 +896,17 @@ CNV.esFilter2Expression=function(esFilter){
 		var pair = esFilter[op];
 		var variableName = Object.keys(pair)[0];
 		var valueList = pair[variableName];
-		if (valueList.length == 0) Log.error("Expecting something in 'terms' array");
+		if (valueList.length == 0)
+			Log.error("Expecting something in 'terms' array");
 		if (valueList.length == 1) return (variableName) + "==" + CNV.Value2Quote(valueList[0]);
 		output += "[" + valueList.map(CNV.String2Quote).join(", ") + "].intersect(Array.newInstance(" + variableName + ")).length > 0";  //ARRAY BASED FOR MULTIVALUED VARIABLES
 		return output;
 	}else if (op=="exists"){
-		//"exists":{"field":"myField"}
-		var pair = esFilter[op];
-		var variableName = pair.field;
-		return "(" + variableName + ")";
+		var variableName = esFilter[op].field;
+		return "(" + variableName + "!==undefined && " + variableName + "!=null)";
 	}else if (op=="missing"){
-//		"missing":{
-//			"field" : "requestee",
-//			"existence" : true,
-//			"null_value" : true
-//		}
-		var fieldName=(esFilter[op].field);
-		var testExistence=esFilter[op].existence;
-		var testNull=esFilter[op].null_value;
-		return "(!" + variableName + ")";
+		var variableName =esFilter[op].field;
+		return "(" + variableName + "===undefined || " + variableName + "==null)";
 	} else if (op == "range"){
 		var pair = esFilter[op];
 		var variableName = Object.keys(pair)[0];
@@ -877,9 +950,13 @@ CNV.esFilter2Expression=function(esFilter){
 		var pair = esFilter[op];
 		var variableName = Object.keys(pair)[0];
 		var value = pair[variableName];
-		return (variableName)+".startsWith(" + CNV.Value2Quote(value)+")";
+		return "(typeof("+variableName+")==\"string\" && "+variableName+".startsWith(" + CNV.Value2Quote(value)+"))";
 	}else if (op=="match_all"){
 		return "true"
+	}else if (op=="regexp"){
+		var pair = esFilter[op];
+		var variableName = Object.keys(pair)[0];
+		return "(function(){ return new RegExp("+CNV.Value2Quote(pair[variableName])+").test("+variableName+");})()";
 	} else{
 		Log.error("'" + op + "' is an unknown operation");
 	}//endif
