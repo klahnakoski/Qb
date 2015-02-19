@@ -125,6 +125,7 @@ importScript([], function(){
 		$("#cube").linedtextarea();
 
 		$("#execute").click(function(event){
+			$("#result").html("");
 			executeCube();
 		});//method
 	});
@@ -143,7 +144,9 @@ var executeCube = function(event){
 		code = jsl.format.formatJson(code);
 		$("#cube").val(code);
 		var query = jsl.parser.parse(code);
+		var a=Log.action("Send query", true);
 		ESQueryRunner(query, function(data){
+			Log.actionDone(a);
 			var rows;
 			if (data.meta && data.meta.format == "cube") {
 				data.cube = data.data;

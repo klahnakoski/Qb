@@ -581,7 +581,65 @@ Qb.toTable=function(query){
 };//method
 
 
+
+Qb.ActiveDataCube2List=function(query, options){
+	//ActiveData CUBE IS A MAP OF CUBES   {"a": [[]], "b":[[]]}
+	//Javascript CUBE IS A CUBE OF MAPS   [[{"a":v, "b":w}]]
+
+	//PRECOMPUTE THE EDGES
+	var edges = Array.newInstance(query.edges);
+	var domains = edges.select("domain");
+	var parts=domains.select("partitions");
+	var edge_names=edges.select("name");
+
+	endFunction = edges.map(function(e){
+		if (MVEL.isKeyword(e.domain.key)){
+			return function(part){return part[e.domain.key];};
+		}else{
+			Log.error("Can not support domains without keys at this time");
+		}//endif
+	});
+
+	if (edge_names.length==0){
+		if (query.select instanceof Array){
+			return [query.cube];
+		}else{
+			return [query.cube];
+		}//endif
+	}//endif
+
+
+	var select = Array.newInstance(query.select);
+	if (select.length == 0) Log.error("Do not know how to listify cube with no select");
+	var select_names = select.select("name");
+	var m = new Matrix({"data": query.cube[select_names[0]]});
+
+
+	var output = [];
+	m.forall(function(v, c){
+		var o = {};
+		for (var e = 0; e < c.length; e++) {
+			if (edges[e].allowNulls && parts[e].length == c[e]) {
+				o[edge_names[e]] = endFunction[e](domains[e].NULL);
+			} else {
+				o[edge_names[e]] = endFunction[e](parts[e][c[e]]);
+			}//endif
+		}//for
+		for (var s = 0; s < select_names.length; s++) {
+			var val = query.cube[select_names[s]];
+			for (var i = 0; i < c.length; i++) val = val[c[i]];
+			o[select_names[s]] = val;
+		}//for
+		output.append(o);
+	});
+	return output;
+};
+
 Qb.Cube2List=function(query, options){
+	if (query.meta) { //ActiveData INDICATOR
+		return Qb.ActiveDataCube2List(query, options);
+	}//endif
+
 	//WILL end() ALL PARTS UNLESS options.useStruct==true OR options.useLabels==true
 	options=nvl(options, {});
 	options.useStruct=nvl(options.useStruct, false);
@@ -597,18 +655,13 @@ Qb.Cube2List=function(query, options){
 		endFunction=domains.select("label");
 	}//endif
 	var parts=domains.select("partitions");
-	var names=edges.select("name");
+	var edge_names=edges.select("name");
 
-	if (names.length==0){
+	if (edge_names.length==0){
 		if (query.select instanceof Array){
 			return [query.cube];
 		}else{
-			if (query.meta){ //ActiveData INDICATOR
-				return [query.cube];
-			}else{
-				//Javascript ESQuery FORMAT
-				return [Map.newInstance(query.select.name, query.cube)];
-			}//endif
+			return [Map.newInstance(query.select.name, query.cube)];
 		}//endif
 	}//endif
 
@@ -620,9 +673,9 @@ Qb.Cube2List=function(query, options){
 			var o = Map.copy(v);
 			for(var e=0;e<c.length;e++){
 				if (edges[e].allowNulls && parts[e].length==c[e]){
-					o[names[e]]=endFunction[e](domains[e].NULL);
+					o[edge_names[e]]=endFunction[e](domains[e].NULL);
 				}else{
-					o[names[e]]=endFunction[e](parts[e][c[e]]);
+					o[edge_names[e]]=endFunction[e](parts[e][c[e]]);
 				}//endif
 			}//for
 			output.append(o);
@@ -632,9 +685,9 @@ Qb.Cube2List=function(query, options){
 			var o = Map.newInstance(query.select.name, v);
 			for(var e=0;e<c.length;e++){
 				if (edges[e].allowNulls && parts[e].length==c[e]){
-					o[names[e]]=endFunction[e](domains[e].NULL);
+					o[edge_names[e]]=endFunction[e](domains[e].NULL);
 				}else{
-					o[names[e]]=endFunction[e](parts[e][c[e]]);
+					o[edge_names[e]]=endFunction[e](parts[e][c[e]]);
 				}//endif
 			}//for
 			output.append(o);

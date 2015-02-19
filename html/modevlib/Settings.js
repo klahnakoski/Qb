@@ -15,8 +15,10 @@ importScript("charts/aColor.js");
 		"imagePath" : "images",
 
 		"active_data": {
-			"host":"http://54.148.242.195",
-			"port":80,
+//			"host":"http://54.148.242.195",
+//			"port":80,
+			"host":"http://localhost",
+			"port":5000,
 			"path":"/query"
 		},
 
