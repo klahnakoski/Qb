@@ -33,8 +33,8 @@ THIS IS A DEMONSTRATION OF USING THE ESQueryRunner
 	<div id="description">
 		Converts Qb queries to ElasticSearch queries.
 		<ul>
-			<li><a href="https://github.com/klahnakoski/Qb/tree/master/docs/Qb-Reference.md">Reference Documentation</a></li>
-			<li><a href="https://github.com/klahnakoski/Qb/tree/master/docs/BZ-Tutorial.md">Bugzilla Tutorial</a></li>
+			<li><a href="https://github.com/klahnakoski/Qb/blob/master/docs/Qb_Reference.md">Reference Documentation</a></li>
+			<li><a href="https://github.com/klahnakoski/Qb/blob/master/docs/BZ_Tutorial.md">Bugzilla Tutorial</a></li>
 			<li><a href="https://github.com/klahnakoski/Qb">Github</a></li>
 		</ul>
 	</div>
@@ -69,7 +69,7 @@ THIS IS A DEMONSTRATION OF USING THE ESQueryRunner
 
 <div style="width:800px;float: left;">
 	<textarea name="cube" id="cube" style="width:800px;height:250px;"></textarea>
-
+	<textarea name="notes" id="notes" style="width:800px;height:250px;"></textarea>
 	<div id="result" style="overflow: scroll;width:800px;height:250px;"></div>
 </div>
 
@@ -135,18 +135,22 @@ importScript([], function(){
 
 var executeCube = function(event){
 	//EVAL THE Qb
+	$("#notes").hide();
+
+
 	var code = $("#cube").val();
 	if (code.trim().left(1) != "{") code = "{" + code;
 	if (code.trim().right(1) != "}") code = code + "}";
 
-	try {
-		//USE JSONLINT TO FORMAT AND TEST-COMPILE THE code
-		code = jsl.format.formatJson(code);
-		$("#cube").val(code);
-		var query = jsl.parser.parse(code);
+	Thread.run(function*(){
 		var a=Log.action("Send query", true);
-		ESQueryRunner(query, function(data){
-			Log.actionDone(a);
+		try {
+			//USE JSONLINT TO FORMAT AND TEST-COMPILE THE code
+			code = jsl.format.formatJson(code);
+			$("#cube").val(code);
+			var query = jsl.parser.parse(code);
+
+			var data = yield(ESQueryRunner(query));
 			var rows;
 			if (data.meta && data.meta.format == "cube") {
 				data.cube = data.data;
@@ -164,12 +168,14 @@ var executeCube = function(event){
 				$("#result").html(convert.String2HTML(convert.value2json(data)));
 				return
 			}//endif
-			$("#result").html("<div>" + rows.length + " rows (up to 100 shown)</div>" + convert.List2HTMLTable(rows, {"limit": 3000}));
-		});
-	} catch (e) {
-		Log.action(e.message);
-		if (e.data !== undefined) $("#result").html(e.data.response);
-	}//try
+			$("#cube").val(convert.value2json(convert.json2value(code)));
+			$("#result").html("<div>" + rows.length + " rows (up to 3000 shown)</div>" + convert.List2HTMLTable(rows, {"limit": 3000}));
+		} catch (e) {
+			$("#notes").show().val(e.message);
+		}finally{
+			Log.actionDone(a);
+		}//try
+	});
 };
 
 

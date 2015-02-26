@@ -594,7 +594,13 @@ Qb.ActiveDataCube2List=function(query, options){
 
 	endFunction = edges.map(function(e){
 		if (MVEL.isKeyword(e.domain.key)){
-			return function(part){return part[e.domain.key];};
+			return function(part){
+				if (part===undefined || part==null){
+					return null;
+				}else{
+					return part[e.domain.key];
+				};
+			};
 		}else{
 			Log.error("Can not support domains without keys at this time");
 		}//endif

@@ -556,6 +556,14 @@ wrapWithHtmlTag = function(tagName, value){
 		return prefix + value + suffix;
 	} else if (typeof(value) == "string") {
 		return prefix + convert.String2HTML(value) + suffix;
+	} else if (aMath.isNumeric(value) && ("" + value).length == 10 && ("" + value).startsWith("1")) {
+		//PROBABLY A UNIX TIMESTAMP
+		value = new Date(value*1000);
+		if (value.floorDay().getMilli() == value.getMilli()) {
+			return prefix + new Date(value).format("dd-NNN-yyyy") + suffix;
+		} else {
+			return prefix + new Date(value).format("dd-NNN-yyyy HH:mm:ss") + suffix;
+		}//endif
 	} else if (aMath.isNumeric(value)) {
 		if (("" + value).length == 13) {
 			//PROBABLY A TIMESTAMP
