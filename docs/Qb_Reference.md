@@ -4,7 +4,7 @@ Qb (pronounced kyo͞ob) Queries
 Motivation
 ----------
 
-[Data cubes](http://en.wikipedia.org/wiki/OLAP_cube) facilitate strong typing of data volumes.  Thier cartesian nature
+[Data cubes](http://en.wikipedia.org/wiki/OLAP_cube) facilitate strong typing of data volumes. Their cartesian nature
 makes counting and aggregation trivial, provably correct, operations. [MultiDimensional query eXpressions (MDX)](http://en.wikipedia.org/wiki/MultiDimensional_eXpressions)
 takes advantage of the data cube uniformity to provide a simple query language to filter and group by.  Unfortunately,
 MDX is too simple for general use, and requires copious up-front work to get the data in the cubic form required.
@@ -12,7 +12,7 @@ MDX is too simple for general use, and requires copious up-front work to get the
 My experience with ETL has shown existing languages to be lacking:  Javascript, and procedural languages in general,
 are not suited for general transformations because the logic is hidden in loops and handling edge case of those loops.
 SQL has been my preferred ETL language because it can state many common data transformations simply, but [SQL has many
-of it's own shortcomings](SQL Shortcomings.md)
+of its own shortcomings](SQL Shortcomings.md)
 
 I want to extend SQL with the good parts of MDX to provide a ETL data transformation language which will avoid common
 ETL bugs.
@@ -43,7 +43,7 @@ The nomenclature closely follows that used in business intellegnce.
 
   - **cube** – a set of values in an n-space.  A good example for n=2 is a spreadsheet.
   - **edge** – each edge defines a dimension of the cube and the topology of that dimension.  Our spreadsheet example has two dimensions: Rows and Columns.
-  - **domain** – every edge has a domain which defines it’s valid values.  The spreadsheet's rows have natual numbers as thier domain (1, 2, 3, ...) and the columns are in the alphabet domain (A, B, C, ....)
+  - **domain** – every edge has a domain which defines its valid values.  The spreadsheet's rows have natual numbers as thier domain (1, 2, 3, ...) and the columns are in the alphabet domain (A, B, C, ....)
   - **partition** – every domain can be partitioned in multiple ways.  Each partition is an ordered array of mutually exclusive parts that cover the domain.  In the case of the spreadsheet, you may want to group many rows, or many columns together and treat them all the same.  Maybe columns are retail outlets, grouped by region, and rows are customers, group by demographic
   - **part** – one part of a partition.  Eg "north-east region", or "under 20"
   - **part objects** - Partitions are often an array of objects (with a name, value, and other attributes).  These objects usually represent the values along the axis of a chart.  Eg {"name": "NorthEast", "director":"Ann"} {"name":"Under 20", "display color":"blue"}
@@ -100,7 +100,7 @@ Example: Pull review requests from BZ:
     "where": {"term":{"bugs.attachments.flags.request_status" : "?"}}
     }
 
-ESQuery.js can pull individual nested documents from ES.  ES on it’s own can only return a document once.  Aggregation
+ESQuery.js can pull individual nested documents from ES.  ES on its own can only return a document once.  Aggregation
 over nested documents is not supported.
 
 select
@@ -195,7 +195,7 @@ where
 -----
 
 Where clause is code to return true/false or whether the data will be included in the aggregate.  This does not impact
-the edges; every edge is restricted to it’s own domain.
+the edges; every edge is restricted to its own domain.
 
 The elasticsearch.org's [documentation on filters](http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-filters.html)
 covers the types of filters and the format expected.
@@ -252,7 +252,7 @@ The domain is defined as an attribute of every edge.  Each domain defines a cove
   - **type** – One of a few predefined types  (Default ```{"type":"default"}```)
   - **value** – Domain partitions are technically JSON objects with descriptive attributes (name, value, max, min, etc).  The value attribute is code that will extract the value of the domain after aggregation is complete.
   - **key** – Code to extract the unique key value from any part object in a partition.  This is important so a 1-1 relationship can be established – mapping fast string hashes to slow object comparisons.
-  - **isFacet** – for ES queries:  Will force each part of the domain to have it’s own facet.  Each part of the domain must be explicit, and define ```edges[].domain.partition.esfilter``` as the facet filter.  Avoid using ```{"script"...}``` filters in facets because they are WAY slow.
+  - **isFacet** – for ES queries:  Will force each part of the domain to have its own facet.  Each part of the domain must be explicit, and define ```edges[].domain.partition.esfilter``` as the facet filter.  Avoid using ```{"script"...}``` filters in facets because they are WAY slow.
 
 edges.domain.type
 -------------------
@@ -313,7 +313,7 @@ have been pre-defined](https://github.com/klahnakoski/Qb/blob/master/html/es/js/
 [More documentation on dimension definitions here](Dimension Definitions.md).
 
   - **select** - Any pre-defined dimension with a partition defined can be used in a select clause. Each record will be
-  assigned it's part.
+  assigned its part.
 
     <pre>var details=yield(ESQuery.run({
         "from":"bugs",
