@@ -1,6 +1,11 @@
-
 Qb Query Library
 ================
+
+# Status
+
+This repo has been archived, and used resources that have long since been retired
+
+
 
 Requirements
 ------------
